@@ -1,1 +1,1 @@
-# civic-app
+# civic-connect
