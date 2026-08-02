@@ -1,1 +1,1 @@
-# civic-connect
+# Civic Connect
