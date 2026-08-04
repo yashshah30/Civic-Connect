@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 
 import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
@@ -14,7 +14,7 @@ export default function AppRoutes() {
   return (
     <Routes>
       {/* Default Route */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<Landing />} />
 
       {/* Authentication */}
       <Route path="/login" element={<Login />} />
