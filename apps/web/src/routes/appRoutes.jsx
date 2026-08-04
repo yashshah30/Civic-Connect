@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 
+import Landing from "../pages/landing/landing";
 import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
 import ForgotPassword from "../pages/auth/ForgotPassword";
@@ -7,13 +8,12 @@ import OTPVerification from "../pages/auth/OTPVerification";
 
 import Dashboard from "../pages/citizen/dashboard";
 import AuthorityDashboard from "../pages/authority/dashboard";
-import Landing from "../pages/landing/landing";
 import NotFound from "../pages/notfound/notfound";
 
-export default function AppRoutes() {
+function AppRoutes() {
   return (
     <Routes>
-      {/* Default Route */}
+      {/* Landing */}
       <Route path="/" element={<Landing />} />
 
       {/* Authentication */}
@@ -22,8 +22,7 @@ export default function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/otp" element={<OTPVerification />} />
 
-      {/* Other Pages */}
-      <Route path="/landing" element={<Landing />} />
+      {/* Dashboards */}
       <Route path="/citizen/dashboard" element={<Dashboard />} />
       <Route path="/authority/dashboard" element={<AuthorityDashboard />} />
 
@@ -32,3 +31,5 @@ export default function AppRoutes() {
     </Routes>
   );
 }
+
+export default AppRoutes;
