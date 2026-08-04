@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+body{
+    background:#F8FAFC;
+    color:#1E293B;
+    font-family:Inter,sans-serif;
+}
+
+button{
+    transition:0.2s;
+}
+
+*{
+    box-sizing:border-box;
+}
