@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import Landing from "../pages/landing/landing";
 import Login from "../pages/auth/Login";
@@ -7,28 +7,78 @@ import ForgotPassword from "../pages/auth/ForgotPassword";
 import OTPVerification from "../pages/auth/OTPVerification";
 
 import Dashboard from "../pages/citizen/dashboard";
-import AuthorityDashboard from "../pages/authority/dashboard";
+
+import AuthorityDashboard from "../pages/authority/AuthorityDashboard";
+import AuthorityComplaints from "../pages/authority/AuthorityComplaints";
+import AuthorityComplaintDetails from "../pages/authority/AuthorityComplaintDetails";
+
 import NotFound from "../pages/notfound/notfound";
 
 function AppRoutes() {
   return (
-    <Routes>
-      {/* Landing */}
-      <Route path="/" element={<Landing />} />
+    <BrowserRouter>
+      <Routes>
 
-      {/* Authentication */}
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/otp" element={<OTPVerification />} />
+        {/* Default */}
+        <Route
+          path="/"
+          element={<Navigate to="/login" replace />}
+        />
 
-      {/* Dashboards */}
-      <Route path="/citizen/dashboard" element={<Dashboard />} />
-      <Route path="/authority/dashboard" element={<AuthorityDashboard />} />
+        {/* Authentication */}
+        <Route path="/login" element={<Login />} />
 
-      {/* 404 */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
+        <Route
+          path="/signup"
+          element={<Signup />}
+        />
+
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
+
+        <Route
+          path="/otp"
+          element={<OTPVerification />}
+        />
+
+        {/* Landing */}
+        <Route
+          path="/landing"
+          element={<Landing />}
+        />
+
+        {/* Citizen */}
+        <Route
+          path="/citizen/dashboard"
+          element={<Dashboard />}
+        />
+
+        {/* Authority */}
+        <Route
+          path="/authority/dashboard"
+          element={<AuthorityDashboard />}
+        />
+
+        <Route
+          path="/authority/complaints"
+          element={<AuthorityComplaints />}
+        />
+
+        <Route
+          path="/authority/complaints/:id"
+          element={<AuthorityComplaintDetails />}
+        />
+
+        {/* 404 */}
+        <Route
+          path="*"
+          element={<NotFound />}
+        />
+
+      </Routes>
+    </BrowserRouter>
   );
 }
 
