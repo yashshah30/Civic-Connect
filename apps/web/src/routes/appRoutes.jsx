@@ -1,4 +1,7 @@
 import { Routes, Route } from "react-router-dom";
+import MyComplaints from "../pages/citizen/MyComplaints";
+import ComplaintDetails from "../pages/citizen/ComplaintDetails";
+import ReportComplaint from "../pages/citizen/ReportComplaint";
 
 import Landing from "../pages/landing/landing";
 import Login from "../pages/auth/Login";
@@ -24,6 +27,10 @@ function AppRoutes() {
 
       {/* Dashboards */}
       <Route path="/citizen/dashboard" element={<Dashboard />} />
+      <Route path="/citizen/complaints" element={<MyComplaints />} />
+      <Route path="/citizen/complaints/:id" element={<ComplaintDetails />} />
+      <Route path="/citizen/report" element={<ReportComplaint />} />
+
       <Route path="/authority/dashboard" element={<AuthorityDashboard />} />
 
       {/* 404 */}
