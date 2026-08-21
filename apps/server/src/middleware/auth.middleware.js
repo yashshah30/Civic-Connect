@@ -73,7 +73,8 @@ if (profileError || !profile) {
 req.user = {
   ...user,
   role: profile.role,
-  profile
+  profile,
+  accessToken: token
 };
 
 next();
