@@ -1,5 +1,4 @@
-import { Routes, Route } from "react-router-dom";
-import Notifications from "../pages/citizen/Notifications";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Landing & Authentication
 import Landing from "../pages/landing/landing";
@@ -13,81 +12,95 @@ import Dashboard from "../pages/citizen/dashboard";
 import ReportComplaint from "../pages/citizen/ReportComplaint";
 import MyComplaints from "../pages/citizen/MyComplaints";
 import ComplaintDetails from "../pages/citizen/ComplaintDetails";
+import Notifications from "../pages/citizen/Notifications";
 
 // Authority
-import AuthorityDashboard from "../pages/authority/dashboard";
+import AuthorityDashboard from "../pages/authority/AuthorityDashboard";
+import AuthorityComplaints from "../pages/authority/AuthorityComplaints";
+import AuthorityComplaintDetails from "../pages/authority/AuthorityComplaintDetails";
 
 // 404
 import NotFound from "../pages/notfound/notfound";
 
 function AppRoutes() {
   return (
-    <Routes>
-      {/* Landing */}
-      <Route
-        path="/"
-        element={<Landing />}
-      />
+    <BrowserRouter>
+      <Routes>
 
-      {/* Authentication */}
-      <Route
-        path="/login"
-        element={<Login />}
-      />
+        {/* Default */}
+        <Route
+          path="/"
+          element={<Navigate to="/login" replace />}
+        />
 
-      <Route
-        path="/signup"
-        element={<Signup />}
-      />
+        {/* Landing */}
+        <Route
+          path="/landing"
+          element={<Landing />}
+        />
 
-      <Route
-        path="/forgot-password"
-        element={<ForgotPassword />}
-      />
+        {/* Authentication */}
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+        <Route
+          path="/signup"
+          element={<Signup />}
+        />
+        <Route
+          path="/forgot-password"
+          element={<ForgotPassword />}
+        />
+        <Route
+          path="/otp"
+          element={<OTPVerification />}
+        />
 
-      <Route
-        path="/otp"
-        element={<OTPVerification />}
-      />
+        {/* Citizen */}
+        <Route
+          path="/citizen/dashboard"
+          element={<Dashboard />}
+        />
+        <Route
+          path="/citizen/report"
+          element={<ReportComplaint />}
+        />
+        <Route
+          path="/citizen/complaints"
+          element={<MyComplaints />}
+        />
+        <Route
+          path="/citizen/complaints/:id"
+          element={<ComplaintDetails />}
+        />
+        <Route
+          path="/citizen/notifications"
+          element={<Notifications />}
+        />
 
-      {/* Citizen */}
-      <Route
-        path="/citizen/dashboard"
-        element={<Dashboard />}
-      />
+        {/* Authority */}
+        <Route
+          path="/authority/dashboard"
+          element={<AuthorityDashboard />}
+        />
+        <Route
+          path="/authority/complaints"
+          element={<AuthorityComplaints />}
+        />
+        <Route
+          path="/authority/complaints/:id"
+          element={<AuthorityComplaintDetails />}
+        />
 
-      <Route
-        path="/citizen/report"
-        element={<ReportComplaint />}
-      />
+        {/* 404 */}
+        <Route
+          path="*"
+          element={<NotFound />}
+        />
 
-      <Route
-        path="/citizen/complaints"
-        element={<MyComplaints />}
-      />
-
-      <Route
-        path="/citizen/complaints/:id"
-        element={<ComplaintDetails />}
-      />
-
-      <Route
-        path="/citizen/notifications"
-        element={<Notifications />}
-      />
-
-      {/* Authority */}
-      <Route
-        path="/authority/dashboard"
-        element={<AuthorityDashboard />}
-      />
-
-      {/* 404 */}
-      <Route
-        path="*"
-        element={<NotFound />}
-      />
-    </Routes>
+      </Routes>
+    </BrowserRouter>
   );
 }
 
