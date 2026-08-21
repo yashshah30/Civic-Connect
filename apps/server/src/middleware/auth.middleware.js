@@ -1,3 +1,4 @@
+import { createClient } from "@supabase/supabase-js";
 import { supabase } from "../config/supabase.js";
 
 export const authMiddleware = async (req, res, next) => {
@@ -44,9 +45,38 @@ export const authMiddleware = async (req, res, next) => {
     }
 
     // Attach authenticated user to request
-    req.user = user;
+   const authenticatedSupabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY,
+  {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    }
+  }
+);
 
-    next();
+const { data: profile, error: profileError } = await authenticatedSupabase
+  .from("profiles")
+  .select("id, name, email, mobile, address, role")
+  .eq("id", user.id)
+  .single();
+
+if (profileError || !profile) {
+  return res.status(403).json({
+    success: false,
+    message: "User profile not found"
+  });
+}
+
+req.user = {
+  ...user,
+  role: profile.role,
+  profile
+};
+
+next();
   } catch (error) {
     console.error("Authentication middleware error:", error);
 
