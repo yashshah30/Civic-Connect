@@ -7,6 +7,9 @@ import ForgotPassword from "../pages/auth/ForgotPassword";
 import OTPVerification from "../pages/auth/OTPVerification";
 
 import Dashboard from "../pages/citizen/dashboard";
+import MyComplaints from "../pages/citizen/MyComplaints";
+import ComplaintDetails from "../pages/citizen/ComplaintDetails";
+import ReportComplaint from "../pages/citizen/ReportComplaint";
 
 import AuthorityDashboard from "../pages/authority/AuthorityDashboard";
 import AuthorityComplaints from "../pages/authority/AuthorityComplaints";
@@ -27,17 +30,11 @@ function AppRoutes() {
 
         {/* Authentication */}
         <Route path="/login" element={<Login />} />
-
-        <Route
-          path="/signup"
-          element={<Signup />}
-        />
-
+        <Route path="/signup" element={<Signup />} />
         <Route
           path="/forgot-password"
           element={<ForgotPassword />}
         />
-
         <Route
           path="/otp"
           element={<OTPVerification />}
@@ -54,18 +51,28 @@ function AppRoutes() {
           path="/citizen/dashboard"
           element={<Dashboard />}
         />
+        <Route
+          path="/citizen/complaints"
+          element={<MyComplaints />}
+        />
+        <Route
+          path="/citizen/complaints/:id"
+          element={<ComplaintDetails />}
+        />
+        <Route
+          path="/citizen/report"
+          element={<ReportComplaint />}
+        />
 
         {/* Authority */}
         <Route
           path="/authority/dashboard"
           element={<AuthorityDashboard />}
         />
-
         <Route
           path="/authority/complaints"
           element={<AuthorityComplaints />}
         />
-
         <Route
           path="/authority/complaints/:id"
           element={<AuthorityComplaintDetails />}

@@ -9,6 +9,12 @@ export const COLORS = {
   text: "#1E293B",
   textLight: "#64748B",
 
+ // Added for Civic Complaint Lifecycle
+  pending: "#F59E0B",      // Amber
+  inProgress: "#0284C7",   // Sky Blue
+  resolved: "#16A34A",     // Green
+  rejected: "#DC2626",     // Red
+
   success: "#16A34A",
   warning: "#F59E0B",
   error: "#DC2626",
