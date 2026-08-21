@@ -1,50 +1,62 @@
 import { useNavigate } from "react-router-dom";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiBell } from "react-icons/fi";
 
 import Navbar from "../../components/layout/navbar";
 import Button from "../../components/ui/button";
 import ComplaintStats from "../../components/citizen/ComplaintStats";
 import ComplaintCard from "../../components/citizen/ComplaintCard";
 
-const complaints = [
-  {
-    id: "#CC-001",
-    title: "Road pothole near college",
-    category: "Road",
-    location: "Bhopal",
-    date: "20 Aug 2026",
-    status: "In Progress",
-    priority: "High",
-  },
-  {
-    id: "#CC-002",
-    title: "Garbage collection issue",
-    category: "Sanitation",
-    location: "Bhopal",
-    date: "18 Aug 2026",
-    status: "Under Review",
-    priority: "Medium",
-  },
-  {
-    id: "#CC-003",
-    title: "Water leakage in residential area",
-    category: "Water",
-    location: "Bhopal",
-    date: "15 Aug 2026",
-    status: "Resolved",
-    priority: "Low",
-  },
-];
-
-const stats = {
-  total: 12,
-  submitted: 3,
-  inProgress: 4,
-  resolved: 5,
-};
+import mockComplaints from "../../data/mockComplaints";
+import mockNotifications from "../../data/mockNotifications";
 
 export default function Dashboard() {
   const navigate = useNavigate();
+
+  // --------------------------------------------------
+  // Calculate dashboard statistics from mock data
+  // --------------------------------------------------
+
+  const total = mockComplaints.length;
+
+  const submitted = mockComplaints.filter(
+    (complaint) => complaint.status === "Submitted"
+  ).length;
+
+  const inProgress = mockComplaints.filter(
+    (complaint) => complaint.status === "In Progress"
+  ).length;
+
+  const resolved = mockComplaints.filter(
+    (complaint) => complaint.status === "Resolved"
+  ).length;
+
+  const stats = {
+    total,
+    submitted,
+    inProgress,
+    resolved,
+  };
+
+  // --------------------------------------------------
+  // Notification count
+  // --------------------------------------------------
+
+  const unreadNotifications = mockNotifications.filter(
+    (notification) => !notification.read
+  ).length;
+
+  // --------------------------------------------------
+  // Show latest 3 complaints
+  // --------------------------------------------------
+
+  const recentComplaints = [...mockComplaints]
+    .sort((a, b) => {
+      const dateA = new Date(a.date);
+      const dateB = new Date(b.date);
+
+      return dateB - dateA;
+    })
+    .slice(0, 3);
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -52,9 +64,13 @@ export default function Dashboard() {
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
-        {/* Welcome Section */}
+        {/* --------------------------------------------------
+            Welcome Section
+        -------------------------------------------------- */}
+
         <section className="mb-8">
           <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
+
             <div>
               <p className="text-sm font-medium text-blue-900">
                 Citizen Portal
@@ -69,7 +85,25 @@ export default function Dashboard() {
               </p>
             </div>
 
-            <div className="md:w-auto">
+            <div className="flex flex-col gap-3 sm:flex-row md:w-auto">
+
+              {/* Notifications Button */}
+              <button
+                onClick={() => navigate("/citizen/notifications")}
+                className="relative flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                <FiBell className="text-lg" />
+
+                Notifications
+
+                {unreadNotifications > 0 && (
+                  <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-xs font-bold text-white">
+                    {unreadNotifications}
+                  </span>
+                )}
+              </button>
+
+              {/* Report Complaint */}
               <Button
                 onClick={() => navigate("/citizen/report")}
                 className="!w-auto"
@@ -79,18 +113,27 @@ export default function Dashboard() {
                   Report New Complaint
                 </span>
               </Button>
+
             </div>
           </div>
         </section>
 
-        {/* Statistics */}
+        {/* --------------------------------------------------
+            Statistics
+        -------------------------------------------------- */}
+
         <section className="mb-8">
           <ComplaintStats stats={stats} />
         </section>
 
-        {/* Recent Complaints */}
+        {/* --------------------------------------------------
+            Recent Complaints
+        -------------------------------------------------- */}
+
         <section>
+
           <div className="mb-5 flex items-center justify-between">
+
             <div>
               <h2 className="text-2xl font-bold text-slate-900">
                 Recent Complaints
@@ -107,16 +150,20 @@ export default function Dashboard() {
             >
               View All
             </button>
+
           </div>
 
           <div className="grid gap-5">
-            {complaints.map((complaint) => (
+
+            {recentComplaints.map((complaint) => (
               <ComplaintCard
                 key={complaint.id}
                 complaint={complaint}
               />
             ))}
+
           </div>
+
         </section>
 
       </main>
