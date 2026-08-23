@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -16,6 +17,7 @@ export default function Login() {
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+
   const [errors, setErrors] = useState({});
 
   const handleLogin = async () => {
@@ -47,7 +49,7 @@ export default function Login() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            email,
+            email: email.trim(),
             password,
           }),
         }
@@ -59,7 +61,7 @@ export default function Login() {
         throw new Error(data.message || "Login failed");
       }
 
-      // Save authentication data
+      // Save authentication details
       localStorage.setItem(
         "access_token",
         data.session.access_token
@@ -72,6 +74,7 @@ export default function Login() {
 
       toast.success("Login successful!");
 
+      // Go to citizen dashboard
       setTimeout(() => {
         navigate("/citizen/dashboard");
       }, 800);
@@ -94,30 +97,45 @@ export default function Login() {
       >
         <div className="space-y-5">
 
+          {/* Email */}
           <div>
             <Input
               label="Email"
               type="email"
               placeholder="Enter your email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+
+                setErrors((previous) => ({
+                  ...previous,
+                  email: "",
+                }));
+              }}
             />
 
             {errors.email && (
-              <p className="text-red-500 text-sm mt-1">
+              <p className="mt-1 text-sm text-red-500">
                 {errors.email}
               </p>
             )}
           </div>
 
+          {/* Password */}
           <div className="relative">
-
             <Input
               label="Password"
               type={showPassword ? "text" : "password"}
               placeholder="Enter your password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+
+                setErrors((previous) => ({
+                  ...previous,
+                  password: "",
+                }));
+              }}
             />
 
             <button
@@ -129,14 +147,14 @@ export default function Login() {
             </button>
 
             {errors.password && (
-              <p className="text-red-500 text-sm mt-1">
+              <p className="mt-1 text-sm text-red-500">
                 {errors.password}
               </p>
             )}
-
           </div>
 
-          <div className="flex justify-between items-center">
+          {/* Remember Me / Forgot Password */}
+          <div className="flex items-center justify-between">
 
             <label className="flex items-center gap-2 text-sm text-gray-600">
               <input type="checkbox" />
@@ -145,23 +163,28 @@ export default function Login() {
 
             <Link
               to="/forgot-password"
-              className="text-blue-900 text-sm hover:underline"
+              className="text-sm text-blue-900 hover:underline"
             >
               Forgot Password?
             </Link>
 
           </div>
 
-          <Button onClick={handleLogin} type="button">
+          {/* Login */}
+          <Button
+            onClick={handleLogin}
+            disabled={loading}
+          >
             {loading ? "Logging in..." : "Login"}
           </Button>
 
+          {/* Signup */}
           <p className="text-center text-sm text-slate-600">
             Don't have an account?{" "}
 
             <Link
               to="/signup"
-              className="text-blue-900 font-semibold hover:underline"
+              className="font-semibold text-blue-900 hover:underline"
             >
               Create Account
             </Link>
@@ -172,3 +195,4 @@ export default function Login() {
     </>
   );
 }
+

@@ -113,23 +113,55 @@ const ReportComplaint = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (event) => {
-        event.preventDefault();
+    const handleSubmit = async (event) => {
+    event.preventDefault();
 
-        if (!validateForm()) {
+    if (!validateForm()) {
+        setSuccess(false);
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem("access_token");
+
+        if (!token) {
             setSuccess(false);
+            alert("Please login again before submitting a complaint.");
             return;
         }
 
-        // Mock submission only.
-        console.log("Mock complaint submitted:", {
-            ...form,
-            images,
-        });
+        const response = await fetch(
+            "http://localhost:5000/api/complaints",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    title: form.title,
+                    description: form.description,
+                    category: form.category.toLowerCase(),
+                    priority: "medium",
+                    latitude: Number(form.latitude),
+                    longitude: Number(form.longitude),
+                    address: form.location,
+                }),
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.message || "Failed to submit complaint"
+            );
+        }
+
+        console.log("Complaint created:", data.complaint);
 
         setSuccess(true);
 
-        // Reset form after mock submission.
         setForm({
             title: "",
             description: "",
@@ -145,7 +177,13 @@ const ReportComplaint = () => {
 
         setImages([]);
         setErrors({});
-    };
+
+    } catch (error) {
+        console.error("Complaint submission error:", error);
+        setSuccess(false);
+        alert(error.message || "Failed to submit complaint");
+    }
+};
 
     return (
         <div className="min-h-screen bg-slate-50">

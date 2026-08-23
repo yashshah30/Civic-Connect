@@ -13,7 +13,6 @@ export const createComplaint = async (req, res) => {
       address
     } = req.body;
 
-    // Required fields
     if (!title || !description || !category) {
       return res.status(400).json({
         success: false,
@@ -21,7 +20,6 @@ export const createComplaint = async (req, res) => {
       });
     }
 
-    // Create Supabase client using the user's access token
     const authenticatedSupabase = createClient(
       process.env.SUPABASE_URL,
       process.env.SUPABASE_KEY,
@@ -33,8 +31,8 @@ export const createComplaint = async (req, res) => {
         }
       }
     );
-console.log("Authenticated user ID:", req.user.id);
-console.log("Complaint user ID:", req.user.id);
+
+    console.log("Authenticated user ID:", req.user.id);
 
     const { data, error } = await authenticatedSupabase
       .from("complaints")
@@ -67,6 +65,7 @@ console.log("Complaint user ID:", req.user.id);
       message: "Complaint created successfully",
       complaint: data
     });
+
   } catch (error) {
     console.error("Create complaint error:", error);
 
