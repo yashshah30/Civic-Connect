@@ -1,5 +1,10 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { FiArrowLeft, FiMapPin, FiCalendar } from "react-icons/fi";
+import {
+    FiArrowLeft,
+    FiMapPin,
+    FiCalendar,
+    FiPrinter,
+} from "react-icons/fi";
 
 import Navbar from "../../components/layout/navbar";
 import Card from "../../components/ui/card";
@@ -14,6 +19,10 @@ const ComplaintDetails = () => {
     const complaint = mockComplaints.find(
         (item) => item.id === id
     );
+
+    const handlePrint = () => {
+        window.print();
+    };
 
     if (!complaint) {
         return (
@@ -32,7 +41,9 @@ const ComplaintDetails = () => {
                             </p>
 
                             <button
-                                onClick={() => navigate("/citizen/complaints")}
+                                onClick={() =>
+                                    navigate("/citizen/complaints")
+                                }
                                 className="mt-6 rounded-xl bg-blue-900 px-5 py-3 font-semibold text-white hover:bg-blue-800"
                             >
                                 Back to My Complaints
@@ -45,27 +56,68 @@ const ComplaintDetails = () => {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50">
+        <div className="min-h-screen bg-slate-50 print:bg-white">
+
             <Navbar />
 
-            <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+            <style>{`
+                @media print {
+                    @page {
+                        margin: 16mm;
+                    }
 
-                {/* Back button */}
+                    body {
+                        background: white !important;
+                    }
+
+                    nav,
+                    header {
+                        display: none !important;
+                    }
+
+                    button {
+                        display: none !important;
+                    }
+
+                    .shadow,
+                    .shadow-sm {
+                        box-shadow: none !important;
+                    }
+                }
+            `}</style>
+
+            <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 print:max-w-none print:px-0 print:py-0">
+
+                {/* Back */}
                 <button
                     onClick={() => navigate(-1)}
-                    className="mb-6 flex items-center gap-2 text-sm font-semibold text-blue-900 hover:underline"
+                    className="mb-6 flex items-center gap-2 text-sm font-semibold text-blue-900 hover:underline print:hidden"
                 >
                     <FiArrowLeft />
                     Back
                 </button>
 
+                {/* Print Button */}
+                <div className="mb-6 flex justify-end print:hidden">
+                    <button
+                        type="button"
+                        onClick={handlePrint}
+                        className="flex items-center gap-2 rounded-xl bg-blue-900 px-4 py-3 text-sm font-semibold text-white hover:bg-blue-800"
+                    >
+                        <FiPrinter />
+                        Print Complaint
+                    </button>
+                </div>
+
                 {/* Header */}
-                <div className="mb-8">
+                <div className="mb-8 print:mb-4">
+
                     <p className="text-sm font-semibold text-blue-900">
                         Complaint Details
                     </p>
 
                     <div className="mt-2 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+
                         <div>
                             <p className="text-sm font-semibold text-slate-500">
                                 #{complaint.id}
@@ -76,16 +128,20 @@ const ComplaintDetails = () => {
                             </h1>
                         </div>
 
-                        <StatusBadge status={complaint.status} />
+                        <StatusBadge
+                            status={complaint.status}
+                        />
+
                     </div>
                 </div>
 
-                <div className="grid gap-6 lg:grid-cols-3">
+                <div className="grid gap-6 lg:grid-cols-3 print:block">
 
                     {/* Main information */}
-                    <div className="space-y-6 lg:col-span-2">
+                    <div className="space-y-6 lg:col-span-2 print:space-y-4">
 
                         <Card>
+
                             <h2 className="text-xl font-bold text-slate-900">
                                 Complaint Information
                             </h2>
@@ -96,6 +152,7 @@ const ComplaintDetails = () => {
 
                             <div className="mt-6 grid gap-4 sm:grid-cols-2">
 
+                                {/* Category */}
                                 <div>
                                     <p className="text-sm text-slate-500">
                                         Category
@@ -106,6 +163,7 @@ const ComplaintDetails = () => {
                                     </p>
                                 </div>
 
+                                {/* Priority */}
                                 <div>
                                     <p className="text-sm text-slate-500">
                                         Priority
@@ -116,7 +174,9 @@ const ComplaintDetails = () => {
                                     </span>
                                 </div>
 
+                                {/* Location */}
                                 <div className="flex items-start gap-2">
+
                                     <FiMapPin className="mt-1 text-blue-900" />
 
                                     <div>
@@ -128,9 +188,12 @@ const ComplaintDetails = () => {
                                             {complaint.location}
                                         </p>
                                     </div>
+
                                 </div>
 
+                                {/* Date */}
                                 <div className="flex items-start gap-2">
+
                                     <FiCalendar className="mt-1 text-blue-900" />
 
                                     <div>
@@ -142,13 +205,16 @@ const ComplaintDetails = () => {
                                             {complaint.date}
                                         </p>
                                     </div>
+
                                 </div>
 
                             </div>
+
                         </Card>
 
                         {/* Image */}
                         <Card>
+
                             <h2 className="text-xl font-bold text-slate-900">
                                 Uploaded Image
                             </h2>
@@ -164,13 +230,16 @@ const ComplaintDetails = () => {
                                     No image uploaded
                                 </div>
                             )}
+
                         </Card>
 
                     </div>
 
                     {/* Tracking */}
-                    <div>
+                    <div className="print:mt-4">
+
                         <Card>
+
                             <h2 className="text-xl font-bold text-slate-900">
                                 Complaint Tracking
                             </h2>
@@ -180,10 +249,26 @@ const ComplaintDetails = () => {
                                     currentStatus={complaint.status}
                                 />
                             </div>
+
                         </Card>
+
                     </div>
 
                 </div>
+
+                {/* Print Footer */}
+                <div className="mt-8 hidden border-t border-slate-300 pt-4 text-sm text-slate-500 print:block">
+
+                    <p className="font-semibold text-slate-900">
+                        CIVIC CONNECT
+                    </p>
+
+                    <p className="mt-1">
+                        Official citizen complaint report generated from Civic Connect.
+                    </p>
+
+                </div>
+
             </main>
         </div>
     );

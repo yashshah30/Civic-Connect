@@ -8,6 +8,8 @@ import ForgotPassword from "../pages/auth/ForgotPassword";
 import OTPVerification from "../pages/auth/OTPVerification";
 
 // Citizen
+import ComplaintHistory from "../pages/citizen/ComplaintHistory";
+import CitizenAnalytics from "../pages/citizen/CitizenAnalytics";
 import Dashboard from "../pages/citizen/dashboard";
 import ReportComplaint from "../pages/citizen/ReportComplaint";
 import MyComplaints from "../pages/citizen/MyComplaints";
@@ -77,6 +79,16 @@ function AppRoutes() {
         <Route
           path="/citizen/notifications"
           element={<Notifications />}
+        />
+
+        <Route
+          path="/citizen/activity"
+          element={<CitizenAnalytics />}
+        />
+
+        <Route
+          path="/citizen/history"
+          element={<ComplaintHistory />}
         />
 
         {/* Authority */}
