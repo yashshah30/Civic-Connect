@@ -10,13 +10,13 @@ export const createComplaint = async (req, res) => {
       department_id,
       latitude,
       longitude,
-      address
+      address,
     } = req.body;
 
     if (!title || !description || !category) {
       return res.status(400).json({
         success: false,
-        message: "Title, description and category are required"
+        message: "Title, description and category are required",
       });
     }
 
@@ -26,13 +26,11 @@ export const createComplaint = async (req, res) => {
       {
         global: {
           headers: {
-            Authorization: `Bearer ${req.user.accessToken}`
-          }
-        }
+            Authorization: `Bearer ${req.user.accessToken}`,
+          },
+        },
       }
     );
-
-    console.log("Authenticated user ID:", req.user.id);
 
     const { data, error } = await authenticatedSupabase
       .from("complaints")
@@ -42,11 +40,11 @@ export const createComplaint = async (req, res) => {
         description,
         category,
         priority: priority || "medium",
-        status: "pending",
+        status: "submitted",
         department_id: department_id || null,
         latitude: latitude || null,
         longitude: longitude || null,
-        address: address || null
+        address: address || null,
       })
       .select()
       .single();
@@ -56,22 +54,21 @@ export const createComplaint = async (req, res) => {
 
       return res.status(400).json({
         success: false,
-        message: error.message
+        message: error.message,
       });
     }
 
     return res.status(201).json({
       success: true,
       message: "Complaint created successfully",
-      complaint: data
+      complaint: data,
     });
-
   } catch (error) {
     console.error("Create complaint error:", error);
 
     return res.status(500).json({
       success: false,
-      message: "Internal server error"
+      message: "Internal server error",
     });
   }
 };
