@@ -6,6 +6,7 @@ import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import OTPVerification from "../pages/auth/OTPVerification";
+import ResetPassword from "../pages/auth/ResetPassword";
 
 // Citizen
 import Dashboard from "../pages/citizen/dashboard";
@@ -44,14 +45,22 @@ function AppRoutes() {
           path="/login"
           element={<Login />}
         />
+
         <Route
           path="/signup"
           element={<Signup />}
         />
+
         <Route
           path="/forgot-password"
           element={<ForgotPassword />}
         />
+
+        <Route
+          path="/reset-password"
+          element={<ResetPassword />}
+        />
+
         <Route
           path="/otp"
           element={<OTPVerification />}
@@ -62,18 +71,22 @@ function AppRoutes() {
           path="/citizen/dashboard"
           element={<Dashboard />}
         />
+
         <Route
           path="/citizen/report"
           element={<ReportComplaint />}
         />
+
         <Route
           path="/citizen/complaints"
           element={<MyComplaints />}
         />
+
         <Route
           path="/citizen/complaints/:id"
           element={<ComplaintDetails />}
         />
+
         <Route
           path="/citizen/notifications"
           element={<Notifications />}
@@ -84,10 +97,12 @@ function AppRoutes() {
           path="/authority/dashboard"
           element={<AuthorityDashboard />}
         />
+
         <Route
           path="/authority/complaints"
           element={<AuthorityComplaints />}
         />
+
         <Route
           path="/authority/complaints/:id"
           element={<AuthorityComplaintDetails />}

@@ -91,6 +91,47 @@ export const login = async (req, res) => {
   }
 };
 
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email.trim(),
+      {
+        redirectTo: "http://localhost:5173/reset-password",
+      }
+    );
+
+    if (error) {
+      console.error("Forgot password error:", error);
+
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Password reset email sent",
+    });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
 export const getMe = async (req, res) => {
   try {
     const { data, error } = await supabase
