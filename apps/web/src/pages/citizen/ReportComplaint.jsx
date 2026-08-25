@@ -130,23 +130,28 @@ const ReportComplaint = () => {
             return;
         }
 
+        const formData = new FormData();
+
+        formData.append("title", form.title);
+        formData.append("description", form.description);
+        formData.append("category", form.category.toLowerCase());
+        formData.append("priority", "medium");
+        formData.append("latitude", form.latitude);
+        formData.append("longitude", form.longitude);
+        formData.append("address", form.location);
+
+        images.forEach((image) => {
+            formData.append("images", image.file);
+        });
+
         const response = await fetch(
             "http://localhost:5000/api/complaints",
             {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({
-                    title: form.title,
-                    description: form.description,
-                    category: form.category.toLowerCase(),
-                    priority: "medium",
-                    latitude: Number(form.latitude),
-                    longitude: Number(form.longitude),
-                    address: form.location,
-                }),
+                body: formData,
             }
         );
 
@@ -159,6 +164,7 @@ const ReportComplaint = () => {
         }
 
         console.log("Complaint created:", data.complaint);
+        console.log("Uploaded media:", data.media);
 
         setSuccess(true);
 
@@ -217,9 +223,8 @@ const ReportComplaint = () => {
                             </p>
 
                             <p className="mt-1 text-sm">
-                                This is a mock submission. It has not been sent to the
-                                backend yet.
-                            </p>
+    Your complaint has been submitted successfully and is now under review.
+</p>
                         </div>
                     </div>
                 )}

@@ -39,9 +39,12 @@ export default function Login() {
     }
 
     try {
-      setLoading(true);
+  setLoading(true);
 
-      const response = await fetch(
+  localStorage.removeItem("access_token");
+  localStorage.removeItem("user");
+
+  const response = await fetch(
         "http://localhost:5000/api/auth/login",
         {
           method: "POST",
