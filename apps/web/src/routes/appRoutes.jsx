@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Landing & Authentication
 import Landing from "../pages/landing/landing";
@@ -30,7 +30,7 @@ function AppRoutes() {
         {/* Default */}
         <Route
           path="/"
-          element={<Navigate to="/login" replace />}
+          element={<Landing />}
         />
 
         {/* Landing */}
