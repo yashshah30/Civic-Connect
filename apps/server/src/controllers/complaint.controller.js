@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
+// Create a new complaint
 export const createComplaint = async (req, res) => {
   try {
     const {
@@ -32,7 +33,7 @@ export const createComplaint = async (req, res) => {
       }
     );
 
-    // 1. Create the complaint
+    // 1. Create complaint
     const { data: complaint, error: complaintError } =
       await authenticatedSupabase
         .from("complaints")
@@ -95,7 +96,7 @@ export const createComplaint = async (req, res) => {
           });
         }
 
-        // 3. Create public URL
+        // 3. Get public URL
         const { data: publicUrlData } =
           authenticatedSupabase.storage
             .from("complaint-images")
@@ -103,7 +104,7 @@ export const createComplaint = async (req, res) => {
 
         const fileUrl = publicUrlData.publicUrl;
 
-        // 4. Save image information in complaint_media
+        // 4. Save media information
         const { data: media, error: mediaError } =
           await authenticatedSupabase
             .from("complaint_media")
@@ -144,3 +145,122 @@ export const createComplaint = async (req, res) => {
     });
   }
 };
+
+
+// Get complaints submitted by the logged-in citizen
+export const getMyComplaints = async (req, res) => {
+  try {
+    const authenticatedSupabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_KEY,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${req.user.accessToken}`,
+          },
+        },
+      }
+    );
+
+    const { data: complaints, error } = await authenticatedSupabase
+      .from("complaints")
+      .select(`
+        *,
+        complaint_media (
+          id,
+          file_url,
+          file_type,
+          file_name,
+          created_at
+        )
+      `)
+      .eq("user_id", req.user.id)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Get my complaints error:", error);
+
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    return res.json({
+      success: true,
+      complaints: complaints || [],
+    });
+  } catch (error) {
+    console.error("Get my complaints error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+
+// Get a single complaint belonging to the logged-in citizen
+export const getComplaintById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Complaint ID is required",
+      });
+    }
+
+    const authenticatedSupabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_KEY,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${req.user.accessToken}`,
+          },
+        },
+      }
+    );
+
+    const { data: complaint, error } = await authenticatedSupabase
+      .from("complaints")
+      .select(`
+        *,
+        complaint_media (
+          id,
+          file_url,
+          file_type,
+          file_name,
+          created_at
+        )
+      `)
+      .eq("id", id)
+      .eq("user_id", req.user.id)
+      .single();
+
+    if (error || !complaint) {
+      console.error("Get complaint by ID error:", error);
+
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      complaint,
+    });
+  } catch (error) {
+    console.error("Get complaint by ID error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+

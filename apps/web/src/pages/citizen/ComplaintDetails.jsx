@@ -1,21 +1,91 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { FiArrowLeft, FiMapPin, FiCalendar } from "react-icons/fi";
+import {
+    FiArrowLeft,
+    FiMapPin,
+    FiCalendar,
+} from "react-icons/fi";
 
 import Navbar from "../../components/layout/navbar";
 import Card from "../../components/ui/card";
 import StatusBadge from "../../components/citizen/StatusBadge";
 import StatusTimeline from "../../components/citizen/StatusTimeline";
-import mockComplaints from "../../data/mockComplaints";
 
 const ComplaintDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    const complaint = mockComplaints.find(
-        (item) => item.id === id
-    );
+    const [complaint, setComplaint] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
-    if (!complaint) {
+    useEffect(() => {
+        const fetchComplaint = async () => {
+            try {
+                setLoading(true);
+                setError("");
+
+                const token = localStorage.getItem("access_token");
+
+                if (!token) {
+                    setError("Please login again to view this complaint.");
+                    return;
+                }
+
+                const response = await fetch(
+                    `http://localhost:5000/api/complaints/${id}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(
+                        data.message || "Complaint not found."
+                    );
+                }
+
+                setComplaint(data.complaint);
+            } catch (error) {
+                console.error("Fetch complaint error:", error);
+
+                setError(
+                    error.message || "Failed to load complaint."
+                );
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchComplaint();
+    }, [id]);
+
+    // Loading state
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-50">
+                <Navbar />
+
+                <main className="mx-auto max-w-4xl px-4 py-12">
+                    <Card>
+                        <div className="py-10 text-center">
+                            <p className="text-slate-600">
+                                Loading complaint...
+                            </p>
+                        </div>
+                    </Card>
+                </main>
+            </div>
+        );
+    }
+
+    // Error / not found
+    if (error || !complaint) {
         return (
             <div className="min-h-screen bg-slate-50">
                 <Navbar />
@@ -28,11 +98,14 @@ const ComplaintDetails = () => {
                             </h1>
 
                             <p className="mt-2 text-slate-500">
-                                The complaint you're looking for doesn't exist.
+                                {error ||
+                                    "The complaint you're looking for doesn't exist."}
                             </p>
 
                             <button
-                                onClick={() => navigate("/citizen/complaints")}
+                                onClick={() =>
+                                    navigate("/citizen/complaints")
+                                }
                                 className="mt-6 rounded-xl bg-blue-900 px-5 py-3 font-semibold text-white hover:bg-blue-800"
                             >
                                 Back to My Complaints
@@ -43,6 +116,15 @@ const ComplaintDetails = () => {
             </div>
         );
     }
+
+    const submittedDate = complaint.created_at
+        ? new Date(complaint.created_at).toLocaleString()
+        : "Not available";
+
+    const image =
+        complaint.complaint_media?.find(
+            (media) => media.file_type === "image"
+        )?.file_url || null;
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -96,26 +178,29 @@ const ComplaintDetails = () => {
 
                             <div className="mt-6 grid gap-4 sm:grid-cols-2">
 
+                                {/* Category */}
                                 <div>
                                     <p className="text-sm text-slate-500">
                                         Category
                                     </p>
 
-                                    <p className="mt-1 font-semibold text-slate-900">
+                                    <p className="mt-1 font-semibold capitalize text-slate-900">
                                         {complaint.category}
                                     </p>
                                 </div>
 
+                                {/* Priority */}
                                 <div>
                                     <p className="text-sm text-slate-500">
                                         Priority
                                     </p>
 
-                                    <span className="mt-1 inline-flex rounded-full bg-red-100 px-3 py-1 text-sm font-semibold text-red-700">
+                                    <span className="mt-1 inline-flex rounded-full bg-red-100 px-3 py-1 text-sm font-semibold capitalize text-red-700">
                                         {complaint.priority}
                                     </span>
                                 </div>
 
+                                {/* Location */}
                                 <div className="flex items-start gap-2">
                                     <FiMapPin className="mt-1 text-blue-900" />
 
@@ -125,11 +210,21 @@ const ComplaintDetails = () => {
                                         </p>
 
                                         <p className="mt-1 font-semibold text-slate-900">
-                                            {complaint.location}
+                                            {complaint.address ||
+                                                "Location not provided"}
                                         </p>
+
+                                        {complaint.latitude &&
+                                            complaint.longitude && (
+                                                <p className="mt-1 text-xs text-slate-500">
+                                                    {complaint.latitude},{" "}
+                                                    {complaint.longitude}
+                                                </p>
+                                            )}
                                     </div>
                                 </div>
 
+                                {/* Date */}
                                 <div className="flex items-start gap-2">
                                     <FiCalendar className="mt-1 text-blue-900" />
 
@@ -139,7 +234,7 @@ const ComplaintDetails = () => {
                                         </p>
 
                                         <p className="mt-1 font-semibold text-slate-900">
-                                            {complaint.date}
+                                            {submittedDate}
                                         </p>
                                     </div>
                                 </div>
@@ -153,11 +248,11 @@ const ComplaintDetails = () => {
                                 Uploaded Image
                             </h2>
 
-                            {complaint.image ? (
+                            {image ? (
                                 <img
-                                    src={complaint.image}
+                                    src={image}
                                     alt={complaint.title}
-                                    className="mt-4 h-64 w-full rounded-xl object-cover"
+                                    className="mt-4 max-h-96 w-full rounded-xl object-cover"
                                 />
                             ) : (
                                 <div className="mt-4 flex h-48 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
@@ -190,3 +285,4 @@ const ComplaintDetails = () => {
 };
 
 export default ComplaintDetails;
+

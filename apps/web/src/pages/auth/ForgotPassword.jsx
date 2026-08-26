@@ -1,4 +1,4 @@
-```jsx
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import AuthLayout from "../../components/auth/AuthLayout";
@@ -109,4 +109,4 @@ export default function ForgotPassword() {
     </AuthLayout>
   );
 }
-```
+
