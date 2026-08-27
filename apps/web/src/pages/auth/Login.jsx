@@ -52,7 +52,6 @@ export default function Login() {
         subtitle="Login to access Civic Connect services"
       >
         <div className="space-y-5">
-
           <div>
             <Input
               label="Mobile Number"
@@ -69,7 +68,6 @@ export default function Login() {
           </div>
 
           <div className="relative">
-
             <Input
               label="Password"
               type={showPassword ? "text" : "password"}
@@ -91,17 +89,12 @@ export default function Login() {
                 {errors.password}
               </p>
             )}
-
           </div>
 
           <div className="flex justify-between items-center">
-
             <label className="flex items-center gap-2 text-sm text-gray-600">
-
               <input type="checkbox" />
-
               Remember Me
-
             </label>
 
             <Link
@@ -110,7 +103,6 @@ export default function Login() {
             >
               Forgot Password?
             </Link>
-
           </div>
 
           <Button onClick={handleLogin}>
@@ -118,18 +110,14 @@ export default function Login() {
           </Button>
 
           <p className="text-center text-sm text-slate-600">
-
             Don't have an account?{" "}
-
             <Link
               to="/signup"
               className="text-blue-900 font-semibold hover:underline"
             >
               Create Account
             </Link>
-
           </p>
-
         </div>
       </AuthLayout>
     </>
