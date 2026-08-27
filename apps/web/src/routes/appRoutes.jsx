@@ -14,6 +14,8 @@ import ReportComplaint from "../pages/citizen/ReportComplaint";
 import MyComplaints from "../pages/citizen/MyComplaints";
 import ComplaintDetails from "../pages/citizen/ComplaintDetails";
 import Notifications from "../pages/citizen/Notifications";
+import ComplaintHistory from "../pages/citizen/ComplaintHistory";
+import CitizenAnalytics from "../pages/citizen/CitizenAnalytics";
 
 // Authority
 import AuthorityDashboard from "../pages/authority/AuthorityDashboard";
@@ -91,6 +93,16 @@ function AppRoutes() {
           path="/citizen/notifications"
           element={<Notifications />}
         />
+
+<Route
+  path="/citizen/activity"
+  element={<CitizenAnalytics />}
+/>
+
+<Route
+  path="/citizen/history"
+  element={<ComplaintHistory />}
+/>
 
         {/* Authority */}
         <Route

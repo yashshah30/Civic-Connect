@@ -7,7 +7,7 @@ import Button from "../../components/ui/button";
 import ComplaintStats from "../../components/citizen/ComplaintStats";
 import ComplaintCard from "../../components/citizen/ComplaintCard";
 
-import mockNotifications from "../../data/mockNotifications";
+
 
 export default function Dashboard() {
     const navigate = useNavigate();
@@ -98,22 +98,20 @@ export default function Dashboard() {
     // Notification count
     // --------------------------------------------------
 
-    const unreadNotifications = mockNotifications.filter(
-        (notification) => !notification.read
-    ).length;
+    const unreadNotifications = 0;
 
     // --------------------------------------------------
     // Latest 3 real complaints
     // --------------------------------------------------
 
     const recentComplaints = [...complaints]
-        .sort((a, b) => {
-            const dateA = new Date(a.created_at);
-            const dateB = new Date(b.created_at);
+    .sort((a, b) => {
+        const dateA = new Date(a.created_at || a.date);
+        const dateB = new Date(b.created_at || b.date);
 
-            return dateB - dateA;
-        })
-        .slice(0, 3);
+        return dateB - dateA;
+    })
+    .slice(0, 3);
 
     // --------------------------------------------------
     // Loading state
