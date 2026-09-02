@@ -6,7 +6,10 @@ import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import OTPVerification from "../pages/auth/OTPVerification";
+
 import ResetPassword from "../pages/auth/ResetPassword";
+import ProtectedRoute from "../components/auth/ProtectedRoute";
+
 
 // Citizen
 import Dashboard from "../pages/citizen/dashboard";
@@ -16,6 +19,8 @@ import ComplaintDetails from "../pages/citizen/ComplaintDetails";
 import Notifications from "../pages/citizen/Notifications";
 import ComplaintHistory from "../pages/citizen/ComplaintHistory";
 import CitizenAnalytics from "../pages/citizen/CitizenAnalytics";
+import CitizenLayout from "../components/citizen/CitizenLayout";
+
 
 // Authority
 import AuthorityDashboard from "../pages/authority/AuthorityDashboard";
@@ -69,6 +74,7 @@ function AppRoutes() {
         />
 
         {/* Citizen */}
+
         <Route
           path="/citizen/dashboard"
           element={<Dashboard />}
@@ -104,6 +110,25 @@ function AppRoutes() {
   element={<ComplaintHistory />}
 />
 
+        <Route element={<ProtectedRoute />}>
+         <Route element={<CitizenLayout />}>
+           <Route path="/citizen/dashboard" element={<Dashboard />} />
+
+           <Route path="/citizen/report" element={<ReportComplaint />} />
+
+           <Route path="/citizen/complaints" element={<MyComplaints />} />
+
+           <Route
+              path="/citizen/complaints/:id"
+              element={<ComplaintDetails />}
+           />
+
+           <Route
+              path="/citizen/notifications"
+             element={<Notifications />}
+           />
+         </Route>
+        </Route>
         {/* Authority */}
         <Route
           path="/authority/dashboard"
