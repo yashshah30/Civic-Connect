@@ -7,8 +7,6 @@ import Button from "../../components/ui/button";
 import ComplaintStats from "../../components/citizen/ComplaintStats";
 import ComplaintCard from "../../components/citizen/ComplaintCard";
 
-
-
 export default function Dashboard() {
     const navigate = useNavigate();
 
@@ -16,10 +14,7 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    // --------------------------------------------------
     // Fetch logged-in citizen's complaints
-    // --------------------------------------------------
-
     useEffect(() => {
         const fetchComplaints = async () => {
             try {
@@ -66,15 +61,14 @@ export default function Dashboard() {
         fetchComplaints();
     }, [navigate]);
 
-    // --------------------------------------------------
     // Calculate statistics from real complaints
-    // --------------------------------------------------
-
     const total = complaints.length;
 
     const submitted = complaints.filter(
         (complaint) =>
-            complaint.status?.toLowerCase() === "submitted"
+            complaint.status?.toLowerCase() === "submitted" ||
+            complaint.status?.toLowerCase() === "under review" ||
+            complaint.status?.toLowerCase() === "assigned"
     ).length;
 
     const inProgress = complaints.filter(
@@ -94,29 +88,21 @@ export default function Dashboard() {
         resolved,
     };
 
-    // --------------------------------------------------
     // Notification count
-    // --------------------------------------------------
-
+    // Will be connected to the notifications module later.
     const unreadNotifications = 0;
 
-    // --------------------------------------------------
-    // Latest 3 real complaints
-    // --------------------------------------------------
-
+    // Latest 3 complaints
     const recentComplaints = [...complaints]
-    .sort((a, b) => {
-        const dateA = new Date(a.created_at || a.date);
-        const dateB = new Date(b.created_at || b.date);
+        .sort((a, b) => {
+            const dateA = new Date(a.created_at || a.date);
+            const dateB = new Date(b.created_at || b.date);
 
-        return dateB - dateA;
-    })
-    .slice(0, 3);
+            return dateB - dateA;
+        })
+        .slice(0, 3);
 
-    // --------------------------------------------------
     // Loading state
-    // --------------------------------------------------
-
     if (loading) {
         return (
             <div className="min-h-screen bg-slate-50">
@@ -133,10 +119,7 @@ export default function Dashboard() {
         );
     }
 
-    // --------------------------------------------------
     // Error state
-    // --------------------------------------------------
-
     if (error) {
         return (
             <div className="min-h-screen bg-slate-50">
@@ -170,10 +153,7 @@ export default function Dashboard() {
 
             <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
-                {/* --------------------------------------------------
-                    Welcome Section
-                -------------------------------------------------- */}
-
+                {/* Welcome Section */}
                 <section className="mb-8">
                     <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
 
@@ -228,18 +208,12 @@ export default function Dashboard() {
                     </div>
                 </section>
 
-                {/* --------------------------------------------------
-                    Statistics
-                -------------------------------------------------- */}
-
+                {/* Statistics */}
                 <section className="mb-8">
                     <ComplaintStats stats={stats} />
                 </section>
 
-                {/* --------------------------------------------------
-                    Recent Complaints
-                -------------------------------------------------- */}
-
+                {/* Recent Complaints */}
                 <section>
 
                     <div className="mb-5 flex items-center justify-between">
