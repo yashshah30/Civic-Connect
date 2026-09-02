@@ -1,20 +1,25 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
+// Landing & Authentication
 import Landing from "../pages/landing/landing";
 import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import OTPVerification from "../pages/auth/OTPVerification";
 
+// Citizen
 import Dashboard from "../pages/citizen/dashboard";
+import ReportComplaint from "../pages/citizen/ReportComplaint";
 import MyComplaints from "../pages/citizen/MyComplaints";
 import ComplaintDetails from "../pages/citizen/ComplaintDetails";
-import ReportComplaint from "../pages/citizen/ReportComplaint";
+import Notifications from "../pages/citizen/Notifications";
 
+// Authority
 import AuthorityDashboard from "../pages/authority/AuthorityDashboard";
 import AuthorityComplaints from "../pages/authority/AuthorityComplaints";
 import AuthorityComplaintDetails from "../pages/authority/AuthorityComplaintDetails";
 
+// 404
 import NotFound from "../pages/notfound/notfound";
 
 function AppRoutes() {
@@ -28,9 +33,21 @@ function AppRoutes() {
           element={<Navigate to="/login" replace />}
         />
 
+        {/* Landing */}
+        <Route
+          path="/landing"
+          element={<Landing />}
+        />
+
         {/* Authentication */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+        <Route
+          path="/signup"
+          element={<Signup />}
+        />
         <Route
           path="/forgot-password"
           element={<ForgotPassword />}
@@ -40,16 +57,14 @@ function AppRoutes() {
           element={<OTPVerification />}
         />
 
-        {/* Landing */}
-        <Route
-          path="/landing"
-          element={<Landing />}
-        />
-
         {/* Citizen */}
         <Route
           path="/citizen/dashboard"
           element={<Dashboard />}
+        />
+        <Route
+          path="/citizen/report"
+          element={<ReportComplaint />}
         />
         <Route
           path="/citizen/complaints"
@@ -60,8 +75,8 @@ function AppRoutes() {
           element={<ComplaintDetails />}
         />
         <Route
-          path="/citizen/report"
-          element={<ReportComplaint />}
+          path="/citizen/notifications"
+          element={<Notifications />}
         />
 
         {/* Authority */}

@@ -1,9 +1,88 @@
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../../components/auth/AuthLayout";
 import Input from "../../components/ui/input";
 import Button from "../../components/ui/button";
 
 export default function Signup() {
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState({
+    name: "",
+    mobile: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    address: "",
+  });
+
+  const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleChange = (e) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const handleSignup = async () => {
+    setMessage("");
+
+    if (
+      !formData.name ||
+      !formData.email ||
+      !formData.password
+    ) {
+      setMessage("Name, email and password are required.");
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setMessage("Passwords do not match.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(
+        "http://localhost:5000/api/auth/signup",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: formData.name,
+            email: formData.email,
+            password: formData.password,
+            mobile: formData.mobile,
+            address: formData.address,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(data.message || "Signup failed.");
+        return;
+      }
+
+      setMessage("Signup successful! Redirecting to login...");
+
+      setTimeout(() => {
+        navigate("/login");
+      }, 1000);
+    } catch (error) {
+      console.error("Signup error:", error);
+      setMessage("Unable to connect to the server.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AuthLayout
       title="Create Account"
@@ -13,34 +92,67 @@ export default function Signup() {
 
         <Input
           label="Full Name"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
           placeholder="Enter your full name"
         />
 
         <Input
           label="Mobile Number"
+          name="mobile"
+          value={formData.mobile}
+          onChange={handleChange}
           placeholder="Enter your mobile number"
         />
 
         <Input
-          label="Email (Optional)"
+          label="Email"
           type="email"
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
           placeholder="Enter your email"
         />
 
         <Input
           label="Password"
           type="password"
+          name="password"
+          value={formData.password}
+          onChange={handleChange}
           placeholder="Create password"
         />
 
         <Input
           label="Confirm Password"
           type="password"
+          name="confirmPassword"
+          value={formData.confirmPassword}
+          onChange={handleChange}
           placeholder="Confirm password"
         />
 
-        <Button>
-          Register
+        <Input
+          label="Address"
+          name="address"
+          value={formData.address}
+          onChange={handleChange}
+          placeholder="Enter your address"
+        />
+
+        {message && (
+          <p className="text-center text-sm text-slate-700">
+            {message}
+          </p>
+        )}
+
+        <Button
+          type="button"
+          onClick={handleSignup}
+          disabled={loading}
+        >
+          {loading ? "Creating Account..." : "Register"}
         </Button>
 
         <p className="text-center text-sm text-slate-600">

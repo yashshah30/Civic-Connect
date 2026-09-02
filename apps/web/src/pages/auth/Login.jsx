@@ -1,3 +1,4 @@
+cat > apps/web/src/pages/auth/Login.jsx <<'EOF'
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -11,50 +12,74 @@ import Button from "../../components/ui/button";
 export default function Login() {
   const navigate = useNavigate();
 
-  const [mobile, setMobile] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
   const [errors, setErrors] = useState({});
 
-  const handleLogin = () => {
-    let newErrors = {};
+  const handleLogin = async () => {
+    const newErrors = {};
 
-    // Mobile validation
-    if (!mobile.trim()) {
-      newErrors.mobile = "Mobile Number is required";
-    } else if (!/^[0-9]{10}$/.test(mobile)) {
-      newErrors.mobile = "Enter a valid 10-digit mobile number";
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
     }
 
-    // Password validation
     if (!password.trim()) {
       newErrors.password = "Password is required";
     }
 
     setErrors(newErrors);
 
-    // Stop if there are errors
     if (Object.keys(newErrors).length > 0) {
       toast.error("Please correct the errors");
       return;
     }
 
-    // Demo login loading
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    setTimeout(() => {
-      setLoading(false);
+      const response = await fetch(
+        "http://localhost:5000/api/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email,
+            password,
+          }),
+        }
+      );
 
-      toast.success("Login Successful");
+      const data = await response.json();
 
-      // Navigate to Citizen Dashboard
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      localStorage.setItem(
+        "access_token",
+        data.session.access_token
+      );
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(data.user)
+      );
+
+      toast.success("Login successful!");
+
       setTimeout(() => {
         navigate("/citizen/dashboard");
-      }, 500);
-    }, 1500);
+      }, 800);
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error(error.message || "Login failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -67,24 +92,22 @@ export default function Login() {
       >
         <div className="space-y-5">
 
-          {/* Mobile Number */}
           <div>
             <Input
-              label="Mobile Number"
-              type="tel"
-              placeholder="Enter your mobile number"
-              value={mobile}
-              onChange={(e) => setMobile(e.target.value)}
+              label="Email"
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
 
-            {errors.mobile && (
+            {errors.email && (
               <p className="mt-1 text-sm text-red-500">
-                {errors.mobile}
+                {errors.email}
               </p>
             )}
           </div>
 
-          {/* Password */}
           <div className="relative">
             <Input
               label="Password"
@@ -94,7 +117,6 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
             />
 
-            {/* Show / Hide Password */}
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
@@ -110,15 +132,12 @@ export default function Login() {
             )}
           </div>
 
-          {/* Remember + Forgot Password */}
           <div className="flex items-center justify-between">
-
             <label className="flex items-center gap-2 text-sm text-gray-600">
               <input
                 type="checkbox"
                 className="h-4 w-4"
               />
-
               Remember Me
             </label>
 
@@ -128,22 +147,18 @@ export default function Login() {
             >
               Forgot Password?
             </Link>
-
           </div>
 
-          {/* Login Button */}
           <Button
-            type="button"
             onClick={handleLogin}
+            type="button"
             disabled={loading}
           >
-            {loading ? "Loading..." : "Login"}
+            {loading ? "Logging in..." : "Login"}
           </Button>
 
-          {/* Signup */}
           <p className="text-center text-sm text-slate-600">
             Don't have an account?{" "}
-
             <Link
               to="/signup"
               className="font-semibold text-blue-900 hover:underline"
@@ -157,3 +172,4 @@ export default function Login() {
     </>
   );
 }
+EOF
