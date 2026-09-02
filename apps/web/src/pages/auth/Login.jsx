@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
@@ -39,12 +38,12 @@ export default function Login() {
     }
 
     try {
-  setLoading(true);
+      setLoading(true);
 
-  localStorage.removeItem("access_token");
-  localStorage.removeItem("user");
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user");
 
-  const response = await fetch(
+      const response = await fetch(
         "http://localhost:5000/api/auth/login",
         {
           method: "POST",
@@ -64,7 +63,6 @@ export default function Login() {
         throw new Error(data.message || "Login failed");
       }
 
-      // Save authentication details
       localStorage.setItem(
         "access_token",
         data.session.access_token
@@ -77,11 +75,9 @@ export default function Login() {
 
       toast.success("Login successful!");
 
-      // Go to citizen dashboard
       setTimeout(() => {
         navigate("/citizen/dashboard");
       }, 800);
-
     } catch (error) {
       console.error("Login error:", error);
       toast.error(error.message || "Login failed");
@@ -158,7 +154,6 @@ export default function Login() {
 
           {/* Remember Me / Forgot Password */}
           <div className="flex items-center justify-between">
-
             <label className="flex items-center gap-2 text-sm text-gray-600">
               <input type="checkbox" />
               Remember Me
@@ -170,7 +165,6 @@ export default function Login() {
             >
               Forgot Password?
             </Link>
-
           </div>
 
           {/* Login */}
@@ -184,7 +178,6 @@ export default function Login() {
           {/* Signup */}
           <p className="text-center text-sm text-slate-600">
             Don't have an account?{" "}
-
             <Link
               to="/signup"
               className="font-semibold text-blue-900 hover:underline"
@@ -192,7 +185,6 @@ export default function Login() {
               Create Account
             </Link>
           </p>
-
         </div>
       </AuthLayout>
     </>
