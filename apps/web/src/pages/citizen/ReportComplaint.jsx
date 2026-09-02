@@ -200,8 +200,7 @@ const ReportComplaint = () => {
                 formData.append("images", image.file);
             });
 
-            const response = await fetch(
-                "http://localhost:5000/api/complaints",
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/complaints`,
                 {
                     method: "POST",
                     headers: {
