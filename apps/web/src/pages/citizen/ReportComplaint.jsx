@@ -145,7 +145,7 @@ const ReportComplaint = () => {
         });
 
         const response = await fetch(
-            "http://localhost:5000/api/complaints",
+            "https://civic-connect-backend-6i78.onrender.com/api/complaints",
             {
                 method: "POST",
                 headers: {
