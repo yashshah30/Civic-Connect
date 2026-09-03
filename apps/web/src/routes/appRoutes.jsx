@@ -37,9 +37,9 @@ function AppRoutes() {
 
         {/* Default */}
         <Route
-          path="/"
-          element={<Navigate to="/login" replace />}
-        />
+  path="/"
+  element={<Navigate to="/landing" replace />}
+/>
 
         {/* Landing */}
         <Route
