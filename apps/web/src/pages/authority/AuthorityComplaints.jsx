@@ -1,4 +1,6 @@
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import ComplaintFilters from "../../components/authority/ComplaintFilters";
 
 const complaints = [
   {
@@ -9,7 +11,8 @@ const complaints = [
     location: "Bhopal",
     priority: "High",
     status: "Under Review",
-    date: "20 Aug 2026",
+    department: "Road Department",
+    date: "2026-08-20",
   },
   {
     id: "CC-002",
@@ -19,7 +22,8 @@ const complaints = [
     location: "Bhopal",
     priority: "Medium",
     status: "Assigned",
-    date: "20 Aug 2026",
+    department: "Electricity Department",
+    date: "2026-08-20",
   },
   {
     id: "CC-003",
@@ -29,7 +33,8 @@ const complaints = [
     location: "Bhopal",
     priority: "Low",
     status: "Resolved",
-    date: "19 Aug 2026",
+    department: "Sanitation Department",
+    date: "2026-08-19",
   },
   {
     id: "CC-004",
@@ -39,7 +44,8 @@ const complaints = [
     location: "Bhopal",
     priority: "Urgent",
     status: "In Progress",
-    date: "19 Aug 2026",
+    department: "Water Supply Department",
+    date: "2026-08-19",
   },
   {
     id: "CC-005",
@@ -49,7 +55,30 @@ const complaints = [
     location: "Bhopal",
     priority: "Medium",
     status: "Submitted",
-    date: "18 Aug 2026",
+    department: "Road Department",
+    date: "2026-08-18",
+  },
+  {
+    id: "CC-006",
+    title: "Open drainage issue",
+    category: "Sanitation",
+    citizen: "Citizen #632",
+    location: "Bhopal",
+    priority: "High",
+    status: "Submitted",
+    department: "Sanitation Department",
+    date: "2026-08-17",
+  },
+  {
+    id: "CC-007",
+    title: "Broken traffic signal",
+    category: "Public Safety",
+    citizen: "Citizen #741",
+    location: "Bhopal",
+    priority: "Urgent",
+    status: "Under Review",
+    department: "Public Safety Department",
+    date: "2026-08-16",
   },
 ];
 
@@ -70,6 +99,64 @@ const statusStyles = {
 };
 
 export default function AuthorityComplaints() {
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [category, setCategory] = useState("");
+  const [priority, setPriority] = useState("");
+  const [department, setDepartment] = useState("");
+  const [date, setDate] = useState("");
+
+  const filteredComplaints = useMemo(() => {
+    return complaints.filter((complaint) => {
+      const searchValue = search.toLowerCase().trim();
+
+      const matchesSearch =
+        !searchValue ||
+        complaint.id.toLowerCase().includes(searchValue) ||
+        complaint.title.toLowerCase().includes(searchValue);
+
+      const matchesStatus =
+        !status || complaint.status === status;
+
+      const matchesCategory =
+        !category || complaint.category === category;
+
+      const matchesPriority =
+        !priority || complaint.priority === priority;
+
+      const matchesDepartment =
+        !department || complaint.department === department;
+
+      const matchesDate =
+        !date || complaint.date === date;
+
+      return (
+        matchesSearch &&
+        matchesStatus &&
+        matchesCategory &&
+        matchesPriority &&
+        matchesDepartment &&
+        matchesDate
+      );
+    });
+  }, [
+    search,
+    status,
+    category,
+    priority,
+    department,
+    date,
+  ]);
+
+  const clearFilters = () => {
+    setSearch("");
+    setStatus("");
+    setCategory("");
+    setPriority("");
+    setDepartment("");
+    setDate("");
+  };
+
   return (
     <div className="min-h-screen bg-slate-50">
 
@@ -89,7 +176,7 @@ export default function AuthorityComplaints() {
 
           <Link
             to="/authority/dashboard"
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
           >
             Dashboard
           </Link>
@@ -112,137 +199,224 @@ export default function AuthorityComplaints() {
           </h2>
 
           <p className="mt-2 text-slate-500">
-            View, monitor and manage citizen complaints.
+            Search, filter and manage citizen complaints.
           </p>
 
         </div>
 
         {/* Filters */}
-        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-
-          <div className="mb-4">
-            <h3 className="font-semibold text-slate-900">
-              Filters
-            </h3>
-
-            <p className="text-sm text-slate-500">
-              Filter complaints by status, category, priority or date.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
-            <select className="rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-blue-800">
-              <option>Status: All</option>
-              <option>Submitted</option>
-              <option>Under Review</option>
-              <option>Assigned</option>
-              <option>In Progress</option>
-              <option>Resolved</option>
-              <option>Rejected</option>
-            </select>
-
-            <select className="rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-blue-800">
-              <option>Category: All</option>
-              <option>Road</option>
-              <option>Electricity</option>
-              <option>Sanitation</option>
-              <option>Water Supply</option>
-            </select>
-
-            <select className="rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-blue-800">
-              <option>Priority: All</option>
-              <option>Urgent</option>
-              <option>High</option>
-              <option>Medium</option>
-              <option>Low</option>
-            </select>
-
-            <input
-              type="date"
-              className="rounded-lg border border-slate-300 px-3 py-3 text-sm outline-none focus:border-blue-800"
-            />
-
-          </div>
-
+        <div className="mb-6">
+          <ComplaintFilters
+            search={search}
+            setSearch={setSearch}
+            status={status}
+            setStatus={setStatus}
+            category={category}
+            setCategory={setCategory}
+            priority={priority}
+            setPriority={setPriority}
+            department={department}
+            setDepartment={setDepartment}
+            date={date}
+            setDate={setDate}
+            onClear={clearFilters}
+          />
         </div>
 
-        {/* Complaint Table */}
-        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        {/* Results */}
+        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-          <div className="border-b p-5">
-            <h3 className="font-semibold text-slate-900">
-              All Complaints
-            </h3>
+          {/* Results Header */}
+          <div className="flex flex-col gap-2 border-b p-5 sm:flex-row sm:items-center sm:justify-between">
 
-            <p className="text-sm text-slate-500">
-              {complaints.length} complaints found
-            </p>
+            <div>
+              <h3 className="font-semibold text-slate-900">
+                All Complaints
+              </h3>
+
+              <p className="text-sm text-slate-500">
+                {filteredComplaints.length}{" "}
+                {filteredComplaints.length === 1
+                  ? "complaint"
+                  : "complaints"}{" "}
+                found
+              </p>
+            </div>
+
+            <div className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-800">
+              Live UI Preview
+            </div>
+
           </div>
 
-          {/* Desktop */}
-          <div className="hidden overflow-x-auto md:block">
+          {/* Empty State */}
+          {filteredComplaints.length === 0 ? (
+            <div className="flex min-h-64 flex-col items-center justify-center px-6 py-12 text-center">
 
-            <table className="w-full text-left text-sm">
+              <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-2xl">
+                🔍
+              </div>
 
-              <thead className="bg-slate-50 text-slate-600">
+              <h3 className="mt-4 font-semibold text-slate-900">
+                No complaints found
+              </h3>
 
-                <tr>
-                  <th className="px-5 py-3">Complaint ID</th>
-                  <th className="px-5 py-3">Title</th>
-                  <th className="px-5 py-3">Category</th>
-                  <th className="px-5 py-3">Citizen</th>
-                  <th className="px-5 py-3">Location</th>
-                  <th className="px-5 py-3">Priority</th>
-                  <th className="px-5 py-3">Status</th>
-                  <th className="px-5 py-3">Date</th>
-                  <th className="px-5 py-3">Action</th>
-                </tr>
+              <p className="mt-1 max-w-md text-sm text-slate-500">
+                Try changing your search or filters to find
+                relevant complaints.
+              </p>
 
-              </thead>
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="mt-4 rounded-lg bg-blue-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-800"
+              >
+                Clear Filters
+              </button>
 
-              <tbody className="divide-y divide-slate-100">
+            </div>
+          ) : (
+            <>
+              {/* Desktop Table */}
+              <div className="hidden overflow-x-auto md:block">
 
-                {complaints.map((complaint) => (
+                <table className="w-full text-left text-sm">
 
-                  <tr
+                  <thead className="bg-slate-50 text-slate-600">
+
+                    <tr>
+                      <th className="px-5 py-3">Complaint ID</th>
+                      <th className="px-5 py-3">Title</th>
+                      <th className="px-5 py-3">Category</th>
+                      <th className="px-5 py-3">Department</th>
+                      <th className="px-5 py-3">Priority</th>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Date</th>
+                      <th className="px-5 py-3">Action</th>
+                    </tr>
+
+                  </thead>
+
+                  <tbody className="divide-y divide-slate-100">
+
+                    {filteredComplaints.map((complaint) => (
+
+                      <tr
+                        key={complaint.id}
+                        className="transition hover:bg-slate-50"
+                      >
+
+                        <td className="px-5 py-4 font-semibold text-blue-900">
+                          {complaint.id}
+                        </td>
+
+                        <td className="px-5 py-4">
+                          <p className="font-medium text-slate-800">
+                            {complaint.title}
+                          </p>
+
+                          <p className="mt-1 text-xs text-slate-400">
+                            {complaint.location}
+                          </p>
+                        </td>
+
+                        <td className="px-5 py-4 text-slate-600">
+                          {complaint.category}
+                        </td>
+
+                        <td className="px-5 py-4 text-slate-600">
+                          {complaint.department}
+                        </td>
+
+                        <td className="px-5 py-4">
+
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-medium ${
+                              priorityStyles[complaint.priority]
+                            }`}
+                          >
+                            {complaint.priority}
+                          </span>
+
+                        </td>
+
+                        <td className="px-5 py-4">
+
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs font-medium ${
+                              statusStyles[complaint.status]
+                            }`}
+                          >
+                            {complaint.status}
+                          </span>
+
+                        </td>
+
+                        <td className="px-5 py-4 text-slate-600">
+                          {complaint.date}
+                        </td>
+
+                        <td className="px-5 py-4">
+
+                          <Link
+                            to={`/authority/complaints/${complaint.id}`}
+                            className="font-medium text-blue-800 hover:underline"
+                          >
+                            View
+                          </Link>
+
+                        </td>
+
+                      </tr>
+
+                    ))}
+
+                  </tbody>
+
+                </table>
+
+              </div>
+
+              {/* Mobile */}
+              <div className="space-y-4 p-4 md:hidden">
+
+                {filteredComplaints.map((complaint) => (
+
+                  <div
                     key={complaint.id}
-                    className="hover:bg-slate-50"
+                    className="rounded-xl border border-slate-200 p-4 transition hover:shadow-sm"
                   >
 
-                    <td className="px-5 py-4 font-semibold text-blue-900">
-                      {complaint.id}
-                    </td>
+                    <div className="flex items-start justify-between gap-3">
 
-                    <td className="px-5 py-4 font-medium text-slate-800">
-                      {complaint.title}
-                    </td>
+                      <div>
+                        <p className="font-semibold text-blue-900">
+                          {complaint.id}
+                        </p>
 
-                    <td className="px-5 py-4 text-slate-600">
-                      {complaint.category}
-                    </td>
-
-                    <td className="px-5 py-4 text-slate-600">
-                      {complaint.citizen}
-                    </td>
-
-                    <td className="px-5 py-4 text-slate-600">
-                      {complaint.location}
-                    </td>
-
-                    <td className="px-5 py-4">
+                        <h4 className="mt-1 font-medium text-slate-800">
+                          {complaint.title}
+                        </h4>
+                      </div>
 
                       <span
-                        className={`rounded-full px-3 py-1 text-xs font-medium ${
+                        className={`rounded-full px-2 py-1 text-xs font-medium ${
                           priorityStyles[complaint.priority]
                         }`}
                       >
                         {complaint.priority}
                       </span>
 
-                    </td>
+                    </div>
 
-                    <td className="px-5 py-4">
+                    <div className="mt-3 space-y-1 text-sm text-slate-500">
+                      <p>Category: {complaint.category}</p>
+                      <p>Department: {complaint.department}</p>
+                      <p>Location: {complaint.location}</p>
+                      <p>Date: {complaint.date}</p>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between">
 
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-medium ${
@@ -252,101 +426,22 @@ export default function AuthorityComplaints() {
                         {complaint.status}
                       </span>
 
-                    </td>
-
-                    <td className="px-5 py-4 text-slate-600">
-                      {complaint.date}
-                    </td>
-
-                    <td className="px-5 py-4">
-
                       <Link
                         to={`/authority/complaints/${complaint.id}`}
-                        className="font-medium text-blue-800 hover:underline"
+                        className="text-sm font-semibold text-blue-800 hover:underline"
                       >
-                        View
+                        View Details →
                       </Link>
 
-                    </td>
+                    </div>
 
-                  </tr>
+                  </div>
 
                 ))}
 
-              </tbody>
-
-            </table>
-
-          </div>
-
-          {/* Mobile */}
-          <div className="space-y-4 p-4 md:hidden">
-
-            {complaints.map((complaint) => (
-
-              <div
-                key={complaint.id}
-                className="rounded-lg border border-slate-200 p-4"
-              >
-
-                <div className="flex items-start justify-between">
-
-                  <div>
-                    <p className="font-semibold text-blue-900">
-                      {complaint.id}
-                    </p>
-
-                    <h4 className="mt-1 font-medium text-slate-800">
-                      {complaint.title}
-                    </h4>
-                  </div>
-
-                  <span
-                    className={`rounded-full px-2 py-1 text-xs font-medium ${
-                      priorityStyles[complaint.priority]
-                    }`}
-                  >
-                    {complaint.priority}
-                  </span>
-
-                </div>
-
-                <div className="mt-3 space-y-1 text-sm text-slate-500">
-
-                  <p>Category: {complaint.category}</p>
-
-                  <p>Citizen: {complaint.citizen}</p>
-
-                  <p>Location: {complaint.location}</p>
-
-                  <p>Date: {complaint.date}</p>
-
-                </div>
-
-                <div className="mt-3 flex items-center justify-between">
-
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-medium ${
-                      statusStyles[complaint.status]
-                    }`}
-                  >
-                    {complaint.status}
-                  </span>
-
-                  <Link
-                    to={`/authority/complaints/${complaint.id}`}
-                    className="text-sm font-medium text-blue-800"
-                  >
-                    View Details →
-                  </Link>
-
-                </div>
-
               </div>
-
-            ))}
-
-          </div>
+            </>
+          )}
 
         </div>
 

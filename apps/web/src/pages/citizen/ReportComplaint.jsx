@@ -113,23 +113,61 @@ const ReportComplaint = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (event) => {
-        event.preventDefault();
+    const handleSubmit = async (event) => {
+    event.preventDefault();
 
-        if (!validateForm()) {
+    if (!validateForm()) {
+        setSuccess(false);
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem("access_token");
+
+        if (!token) {
             setSuccess(false);
+            alert("Please login again before submitting a complaint.");
             return;
         }
 
-        // Mock submission only.
-        console.log("Mock complaint submitted:", {
-            ...form,
-            images,
+        const formData = new FormData();
+
+        formData.append("title", form.title);
+        formData.append("description", form.description);
+        formData.append("category", form.category.toLowerCase());
+        formData.append("priority", "medium");
+        formData.append("latitude", form.latitude);
+        formData.append("longitude", form.longitude);
+        formData.append("address", form.location);
+
+        images.forEach((image) => {
+            formData.append("images", image.file);
         });
+
+        const response = await fetch(
+            "https://civic-connect-backend-6i78.onrender.com/api/complaints",
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                body: formData,
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.message || "Failed to submit complaint"
+            );
+        }
+
+        console.log("Complaint created:", data.complaint);
+        console.log("Uploaded media:", data.media);
 
         setSuccess(true);
 
-        // Reset form after mock submission.
         setForm({
             title: "",
             description: "",
@@ -145,7 +183,13 @@ const ReportComplaint = () => {
 
         setImages([]);
         setErrors({});
-    };
+
+    } catch (error) {
+        console.error("Complaint submission error:", error);
+        setSuccess(false);
+        alert(error.message || "Failed to submit complaint");
+    }
+};
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -179,9 +223,8 @@ const ReportComplaint = () => {
                             </p>
 
                             <p className="mt-1 text-sm">
-                                This is a mock submission. It has not been sent to the
-                                backend yet.
-                            </p>
+    Your complaint has been submitted successfully and is now under review.
+</p>
                         </div>
                     </div>
                 )}
