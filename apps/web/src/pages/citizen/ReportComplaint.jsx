@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { FiCheckCircle, FiMapPin, FiUpload, FiX } from "react-icons/fi";
 
 import Navbar from "../../components/layout/navbar";
@@ -14,8 +13,6 @@ const categories = [
 ];
 
 const ReportComplaint = () => {
-    const navigate = useNavigate();
-
     const [form, setForm] = useState({
         title: "",
         description: "",
@@ -28,9 +25,6 @@ const ReportComplaint = () => {
     const [images, setImages] = useState([]);
     const [errors, setErrors] = useState({});
     const [success, setSuccess] = useState(false);
-    const [submitting, setSubmitting] = useState(false);
-    const [locationLoading, setLocationLoading] = useState(false);
-    const [createdComplaint, setCreatedComplaint] = useState(null);
 
     const handleChange = (event) => {
         const { name, value } = event.target;
@@ -66,68 +60,25 @@ const ReportComplaint = () => {
     };
 
     const removeImage = (index) => {
-        URL.revokeObjectURL(images[index].preview);
-
         setImages((previous) =>
             previous.filter((_, imageIndex) => imageIndex !== index)
         );
     };
 
     const useCurrentLocation = () => {
-        if (!navigator.geolocation) {
-            setErrors((previous) => ({
-                ...previous,
-                location: "Geolocation is not supported by your browser.",
-            }));
-            return;
-        }
+        setForm((previous) => ({
+            ...previous,
+            location: "Bhopal, Madhya Pradesh",
+            latitude: "23.2599",
+            longitude: "77.4126",
+        }));
 
-        setLocationLoading(true);
-
-        navigator.geolocation.getCurrentPosition(
-            async (position) => {
-                const latitude = position.coords.latitude.toFixed(6);
-                const longitude = position.coords.longitude.toFixed(6);
-
-                setForm((previous) => ({
-                    ...previous,
-                    latitude,
-                    longitude,
-                    location: `Latitude ${latitude}, Longitude ${longitude}`,
-                }));
-
-                setErrors((previous) => ({
-                    ...previous,
-                    location: "",
-                    latitude: "",
-                    longitude: "",
-                }));
-
-                setLocationLoading(false);
-            },
-            (error) => {
-                console.error("Location error:", error);
-
-                let message = "Unable to get your current location.";
-
-                if (error.code === error.PERMISSION_DENIED) {
-                    message =
-                        "Location permission was denied. Please allow location access.";
-                }
-
-                setErrors((previous) => ({
-                    ...previous,
-                    location: message,
-                }));
-
-                setLocationLoading(false);
-            },
-            {
-                enableHighAccuracy: true,
-                timeout: 10000,
-                maximumAge: 0,
-            }
-        );
+        setErrors((previous) => ({
+            ...previous,
+            location: "",
+            latitude: "",
+            longitude: "",
+        }));
     };
 
     const validateForm = () => {
@@ -163,96 +114,82 @@ const ReportComplaint = () => {
     };
 
     const handleSubmit = async (event) => {
-        event.preventDefault();
+    event.preventDefault();
 
-        if (submitting) {
+    if (!validateForm()) {
+        setSuccess(false);
+        return;
+    }
+
+    try {
+        const token = localStorage.getItem("access_token");
+
+        if (!token) {
+            setSuccess(false);
+            alert("Please login again before submitting a complaint.");
             return;
         }
 
-        if (!validateForm()) {
-            setSuccess(false);
-            return;
-        }
+        const formData = new FormData();
 
-        try {
-            setSubmitting(true);
-            setSuccess(false);
+        formData.append("title", form.title);
+        formData.append("description", form.description);
+        formData.append("category", form.category.toLowerCase());
+        formData.append("priority", "medium");
+        formData.append("latitude", form.latitude);
+        formData.append("longitude", form.longitude);
+        formData.append("address", form.location);
 
-            const token = localStorage.getItem("access_token");
+        images.forEach((image) => {
+            formData.append("images", image.file);
+        });
 
-            if (!token) {
-                alert("Please login again before submitting a complaint.");
-                navigate("/login");
-                return;
+        const response = await fetch(
+            "https://civic-connect-backend-6i78.onrender.com/api/complaints",
+            {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                body: formData,
             }
+        );
 
-            const formData = new FormData();
+        const data = await response.json();
 
-            formData.append("title", form.title.trim());
-            formData.append("description", form.description.trim());
-            formData.append("category", form.category.toLowerCase());
-            formData.append("priority", "medium");
-            formData.append("latitude", form.latitude);
-            formData.append("longitude", form.longitude);
-            formData.append("address", form.location.trim());
-
-            images.forEach((image) => {
-                formData.append("images", image.file);
-            });
-
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/complaints`,
-                {
-                    method: "POST",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                    body: formData,
-                }
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.message || "Failed to submit complaint"
             );
-
-            const data = await response.json();
-
-            if (!response.ok || !data.success) {
-                throw new Error(
-                    data.message || "Failed to submit complaint."
-                );
-            }
-
-            console.log("Complaint created:", data.complaint);
-            console.log("Uploaded media:", data.media);
-
-            setCreatedComplaint(data.complaint);
-            setSuccess(true);
-
-            setForm({
-                title: "",
-                description: "",
-                category: "",
-                location: "",
-                latitude: "",
-                longitude: "",
-            });
-
-            images.forEach((image) => {
-                URL.revokeObjectURL(image.preview);
-            });
-
-            setImages([]);
-            setErrors({});
-        } catch (error) {
-            console.error("Complaint submission error:", error);
-
-            setSuccess(false);
-
-            setErrors({
-                submit:
-                    error.message ||
-                    "Failed to submit complaint. Please try again.",
-            });
-        } finally {
-            setSubmitting(false);
         }
-    };
+
+        console.log("Complaint created:", data.complaint);
+        console.log("Uploaded media:", data.media);
+
+        setSuccess(true);
+
+        setForm({
+            title: "",
+            description: "",
+            category: "",
+            location: "",
+            latitude: "",
+            longitude: "",
+        });
+
+        images.forEach((image) => {
+            URL.revokeObjectURL(image.preview);
+        });
+
+        setImages([]);
+        setErrors({});
+
+    } catch (error) {
+        console.error("Complaint submission error:", error);
+        setSuccess(false);
+        alert(error.message || "Failed to submit complaint");
+    }
+};
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -275,62 +212,20 @@ const ReportComplaint = () => {
                     </p>
                 </div>
 
-                {/* Success */}
+                {/* Success message */}
                 {success && (
-                    <div className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-green-800">
-                        <div className="flex items-start gap-3">
-                            <FiCheckCircle
-                                className="mt-0.5 shrink-0"
-                                size={20}
-                            />
+                    <div className="mb-6 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-green-800">
+                        <FiCheckCircle className="mt-0.5 shrink-0" size={20} />
 
-                            <div>
-                                <p className="font-semibold">
-                                    Complaint submitted successfully!
-                                </p>
+                        <div>
+                            <p className="font-semibold">
+                                Complaint submitted successfully!
+                            </p>
 
-                                <p className="mt-1 text-sm">
-                                    Your complaint has been submitted and is
-                                    now under review.
-                                </p>
-
-                                {createdComplaint?.id && (
-                                    <p className="mt-1 text-sm font-medium">
-                                        Complaint ID: {createdComplaint.id}
-                                    </p>
-                                )}
-
-                                <div className="mt-4 flex flex-wrap gap-3">
-                                    <button
-                                        type="button"
-                                        onClick={() =>
-                                            navigate("/citizen/complaints")
-                                        }
-                                        className="rounded-lg bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
-                                    >
-                                        View My Complaints
-                                    </button>
-
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            setSuccess(false);
-                                            setCreatedComplaint(null);
-                                        }}
-                                        className="rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-semibold text-green-800 hover:bg-green-50"
-                                    >
-                                        Report Another
-                                    </button>
-                                </div>
-                            </div>
+                            <p className="mt-1 text-sm">
+    Your complaint has been submitted successfully and is now under review.
+</p>
                         </div>
-                    </div>
-                )}
-
-                {/* Submit error */}
-                {errors.submit && (
-                    <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                        {errors.submit}
                     </div>
                 )}
 
@@ -349,11 +244,10 @@ const ReportComplaint = () => {
                                 value={form.title}
                                 onChange={handleChange}
                                 placeholder="Example: Road pothole near college"
-                                className={`w-full rounded-xl border p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${
-                                    errors.title
-                                        ? "border-red-400"
-                                        : "border-slate-300"
-                                }`}
+                                className={`w-full rounded-xl border p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${errors.title
+                                    ? "border-red-400"
+                                    : "border-slate-300"
+                                    }`}
                             />
 
                             {errors.title && (
@@ -371,11 +265,10 @@ const ReportComplaint = () => {
                                 </label>
 
                                 <span
-                                    className={`text-sm ${
-                                        form.description.length > 500
-                                            ? "text-red-600"
-                                            : "text-slate-500"
-                                    }`}
+                                    className={`text-sm ${form.description.length > 500
+                                        ? "text-red-600"
+                                        : "text-slate-500"
+                                        }`}
                                 >
                                     {form.description.length} / 500
                                 </span>
@@ -391,11 +284,10 @@ const ReportComplaint = () => {
                                 }}
                                 rows={5}
                                 placeholder="Describe the problem..."
-                                className={`w-full resize-none rounded-xl border p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${
-                                    errors.description
-                                        ? "border-red-400"
-                                        : "border-slate-300"
-                                }`}
+                                className={`w-full resize-none rounded-xl border p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${errors.description
+                                    ? "border-red-400"
+                                    : "border-slate-300"
+                                    }`}
                             />
 
                             {errors.description && (
@@ -415,21 +307,17 @@ const ReportComplaint = () => {
                                 name="category"
                                 value={form.category}
                                 onChange={handleChange}
-                                className={`w-full rounded-xl border bg-white p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${
-                                    errors.category
-                                        ? "border-red-400"
-                                        : "border-slate-300"
-                                }`}
+                                className={`w-full rounded-xl border bg-white p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${errors.category
+                                    ? "border-red-400"
+                                    : "border-slate-300"
+                                    }`}
                             >
                                 <option value="">
                                     Select category
                                 </option>
 
                                 {categories.map((category) => (
-                                    <option
-                                        key={category}
-                                        value={category}
-                                    >
+                                    <option key={category} value={category}>
                                         {category}
                                     </option>
                                 ))}
@@ -444,7 +332,7 @@ const ReportComplaint = () => {
 
                         {/* Location */}
                         <div>
-                            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="mb-4 flex items-center justify-between">
                                 <label className="font-medium text-slate-700">
                                     Location *
                                 </label>
@@ -452,14 +340,10 @@ const ReportComplaint = () => {
                                 <button
                                     type="button"
                                     onClick={useCurrentLocation}
-                                    disabled={locationLoading}
-                                    className="flex items-center justify-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-900 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                    className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-900 hover:bg-blue-100"
                                 >
                                     <FiMapPin />
-
-                                    {locationLoading
-                                        ? "Getting Location..."
-                                        : "Use Current Location"}
+                                    Use Current Location
                                 </button>
                             </div>
 
@@ -469,11 +353,10 @@ const ReportComplaint = () => {
                                 value={form.location}
                                 onChange={handleChange}
                                 placeholder="Enter location / address"
-                                className={`w-full rounded-xl border p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${
-                                    errors.location
-                                        ? "border-red-400"
-                                        : "border-slate-300"
-                                }`}
+                                className={`w-full rounded-xl border p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${errors.location
+                                    ? "border-red-400"
+                                    : "border-slate-300"
+                                    }`}
                             />
 
                             {errors.location && (
@@ -484,7 +367,6 @@ const ReportComplaint = () => {
 
                             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-                                {/* Latitude */}
                                 <div>
                                     <label className="mb-2 block text-sm font-medium text-slate-700">
                                         Latitude *
@@ -506,7 +388,6 @@ const ReportComplaint = () => {
                                     )}
                                 </div>
 
-                                {/* Longitude */}
                                 <div>
                                     <label className="mb-2 block text-sm font-medium text-slate-700">
                                         Longitude *
@@ -570,17 +451,13 @@ const ReportComplaint = () => {
                                         >
                                             <img
                                                 src={image.preview}
-                                                alt={`Complaint preview ${
-                                                    index + 1
-                                                }`}
+                                                alt={`Complaint preview ${index + 1}`}
                                                 className="h-32 w-full object-cover"
                                             />
 
                                             <button
                                                 type="button"
-                                                onClick={() =>
-                                                    removeImage(index)
-                                                }
+                                                onClick={() => removeImage(index)}
                                                 className="absolute right-2 top-2 rounded-full bg-red-600 p-1.5 text-white shadow hover:bg-red-700"
                                                 aria-label="Remove image"
                                             >
@@ -595,12 +472,9 @@ const ReportComplaint = () => {
                         {/* Submit */}
                         <button
                             type="submit"
-                            disabled={submitting}
-                            className="w-full rounded-xl bg-blue-900 px-5 py-3 font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="w-full rounded-xl bg-blue-900 px-5 py-3 font-semibold text-white transition hover:bg-blue-800"
                         >
-                            {submitting
-                                ? "Submitting Complaint..."
-                                : "Submit Complaint"}
+                            Submit Complaint
                         </button>
 
                     </form>
@@ -611,4 +485,3 @@ const ReportComplaint = () => {
 };
 
 export default ReportComplaint;
-
