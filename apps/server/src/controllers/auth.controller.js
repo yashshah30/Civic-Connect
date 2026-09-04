@@ -134,24 +134,9 @@ export const forgotPassword = async (req, res) => {
 
 export const getMe = async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", req.user.id)
-      .single();
-
-    if (error) {
-      console.error("Get profile error:", error);
-
-      return res.status(404).json({
-        success: false,
-        message: "Profile not found"
-      });
-    }
-
     return res.json({
       success: true,
-      user: data
+      user: req.user.profile
     });
   } catch (error) {
     console.error("Get me error:", error);
@@ -162,3 +147,5 @@ export const getMe = async (req, res) => {
     });
   }
 };
+
+    

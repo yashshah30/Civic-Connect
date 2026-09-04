@@ -73,42 +73,6 @@ function AppRoutes() {
           element={<OTPVerification />}
         />
 
-        {/* Citizen */}
-
-        <Route
-          path="/citizen/dashboard"
-          element={<Dashboard />}
-        />
-
-        <Route
-          path="/citizen/report"
-          element={<ReportComplaint />}
-        />
-
-        <Route
-          path="/citizen/complaints"
-          element={<MyComplaints />}
-        />
-
-        <Route
-          path="/citizen/complaints/:id"
-          element={<ComplaintDetails />}
-        />
-
-        <Route
-          path="/citizen/notifications"
-          element={<Notifications />}
-        />
-
-<Route
-  path="/citizen/activity"
-  element={<CitizenAnalytics />}
-/>
-
-<Route
-  path="/citizen/history"
-  element={<ComplaintHistory />}
-/>
 
         <Route element={<ProtectedRoute />}>
          <Route element={<CitizenLayout />}>

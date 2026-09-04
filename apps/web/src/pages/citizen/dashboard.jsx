@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FiPlus, FiBell } from "react-icons/fi";
 
-import Navbar from "../../components/layout/navbar";
+
 import Button from "../../components/ui/button";
 import ComplaintStats from "../../components/citizen/ComplaintStats";
 import ComplaintCard from "../../components/citizen/ComplaintCard";
 
 export default function Dashboard() {
     const navigate = useNavigate();
+    const [userName, setUserName] = useState("Citizen");
 
     const [complaints, setComplaints] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -16,6 +17,28 @@ export default function Dashboard() {
 
     // Fetch logged-in citizen's complaints
     useEffect(() => {
+        const token = localStorage.getItem("access_token");
+
+if (!token) {
+    navigate("/login");
+    return;
+}
+
+const userResponse = await fetch(
+    `${import.meta.env.VITE_API_URL}/api/auth/me`,
+    {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    }
+);
+
+const userData = await userResponse.json();
+
+if (userResponse.ok && userData.success) {
+    setUserName(userData.user.name || "Citizen");
+}
+
         const fetchComplaints = async () => {
             try {
                 setLoading(true);
@@ -105,7 +128,7 @@ export default function Dashboard() {
     if (loading) {
         return (
             <div className="min-h-screen bg-slate-50">
-                <Navbar />
+                
 
                 <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
                     <div className="rounded-2xl bg-white p-10 text-center shadow">
@@ -122,7 +145,7 @@ export default function Dashboard() {
     if (error) {
         return (
             <div className="min-h-screen bg-slate-50">
-                <Navbar />
+                
 
                 <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
                     <div className="rounded-2xl bg-white p-10 text-center shadow">
@@ -148,7 +171,7 @@ export default function Dashboard() {
 
     return (
         <div className="min-h-screen bg-slate-50">
-            <Navbar />
+            
 
             <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
@@ -162,7 +185,7 @@ export default function Dashboard() {
                             </p>
 
                             <h1 className="mt-1 text-3xl font-bold text-slate-900">
-                                Welcome back, Citizen!
+                                Welcome back, {userName}!
                             </h1>
 
                             <p className="mt-2 text-slate-600">
@@ -195,7 +218,7 @@ export default function Dashboard() {
                                 onClick={() =>
                                     navigate("/citizen/report")
                                 }
-                                className="!w-auto"
+                                className="w-auto!"
                             >
                                 <span className="flex items-center justify-center gap-2">
                                     <FiPlus />
@@ -265,7 +288,7 @@ export default function Dashboard() {
                                 onClick={() =>
                                     navigate("/citizen/report")
                                 }
-                                className="mx-auto mt-5 !w-auto"
+                                className="mx-auto mt-5 w-auto!"
                             >
                                 <span className="flex items-center gap-2">
                                     <FiPlus />
