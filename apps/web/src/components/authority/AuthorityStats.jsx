@@ -1,27 +1,4 @@
-const stats = [
-  {
-    label: "Total Complaints",
-    value: 128,
-  },
-  {
-    label: "New",
-    value: 24,
-  },
-  {
-    label: "In Progress",
-    value: 47,
-  },
-  {
-    label: "Resolved",
-    value: 52,
-  },
-  {
-    label: "Urgent",
-    value: 5,
-  },
-];
-
-export default function AuthorityStats() {
+export default function AuthorityStats({ stats = [] }) {
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
       {stats.map((stat) => (

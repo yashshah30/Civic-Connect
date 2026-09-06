@@ -1,53 +1,234 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import AssignComplaintModal from "../../components/authority/AssignComplaintModal";
 
-const complaint = {
-  id: "CC-001",
-  title: "Road pothole near main market",
-  description:
-    "There is a large pothole near the main market road. It is causing difficulty for vehicles and can be dangerous for pedestrians.",
-  category: "Road",
-  citizen: "Citizen #102",
-  location: "Bhopal, Madhya Pradesh",
-  priority: "High",
-  status: "Under Review",
-  date: "20 Aug 2026",
-  image:
-    "https://images.unsplash.com/photo-1515165562835-c4c9b5a0f8f1?auto=format&fit=crop&w=900&q=80",
-};
-
-const timeline = [
-  {
-    status: "Submitted",
-    date: "20 Aug 2026, 09:15 AM",
-    description: "Complaint submitted by citizen.",
-  },
-  {
-    status: "Under Review",
-    date: "20 Aug 2026, 10:30 AM",
-    description: "Complaint reviewed by authority officer.",
-  },
-  {
-    status: "Assigned",
-    date: "Pending",
-    description: "Department assignment is pending.",
-  },
-  {
-    status: "In Progress",
-    date: "Pending",
-    description: "Work has not started yet.",
-  },
-  {
-    status: "Resolved",
-    date: "Pending",
-    description: "Complaint resolution is pending.",
-  },
-];
+const API_URL =
+  "https://civic-connect-backend-6i78.onrender.com/api/complaints";
 
 export default function AuthorityComplaintDetails() {
   const { id } = useParams();
+
+  const [complaint, setComplaint] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+
+  const fetchComplaint = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const token = localStorage.getItem("access_token");
+
+      if (!token) {
+        setError("Please login again to view this complaint.");
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/${id}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to fetch complaint");
+      }
+
+      setComplaint(data.complaint);
+    } catch (err) {
+      console.error("Complaint details error:", err);
+      setError(err.message || "Failed to load complaint details.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchComplaint();
+  }, [id]);
+
+  const formatDate = (date) => {
+    if (!date) return "—";
+
+    return new Date(date).toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  };
+
+  const formatDateTime = (date) => {
+    if (!date) return "Pending";
+
+    return new Date(date).toLocaleString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatText = (value) => {
+    if (!value) return "—";
+
+    return String(value)
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  };
+
+  const getTimeline = () => {
+    if (!complaint) return [];
+
+    const status = String(complaint.status || "submitted").toLowerCase();
+
+    const statusOrder = [
+      "submitted",
+      "under review",
+      "assigned",
+      "in progress",
+      "resolved",
+    ];
+
+    let currentIndex = statusOrder.indexOf(status);
+
+    if (currentIndex === -1) {
+      if (status === "pending" || status === "new") {
+        currentIndex = 0;
+      } else {
+        currentIndex = 0;
+      }
+    }
+
+    return [
+      {
+        status: "Submitted",
+        date: formatDateTime(complaint.created_at),
+        description: "Complaint submitted by citizen.",
+        completed: currentIndex >= 0,
+      },
+      {
+        status: "Under Review",
+        date: currentIndex >= 1 ? formatDateTime(complaint.updated_at) : "Pending",
+        description: "Complaint reviewed by authority officer.",
+        completed: currentIndex >= 1,
+      },
+      {
+        status: "Assigned",
+        date: currentIndex >= 2 ? formatDateTime(complaint.updated_at) : "Pending",
+        description: "Complaint department assignment.",
+        completed: currentIndex >= 2,
+      },
+      {
+        status: "In Progress",
+        date: currentIndex >= 3 ? formatDateTime(complaint.updated_at) : "Pending",
+        description: "Work related to the complaint is in progress.",
+        completed: currentIndex >= 3,
+      },
+      {
+        status: "Resolved",
+        date: currentIndex >= 4 ? formatDateTime(complaint.updated_at) : "Pending",
+        description: "Complaint has been resolved.",
+        completed: currentIndex >= 4,
+      },
+    ];
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+
+        <nav className="border-b bg-white">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+
+            <div>
+              <h1 className="text-xl font-bold text-blue-900">
+                Civic Connect
+              </h1>
+
+              <p className="text-xs text-slate-500">
+                Authority Portal
+              </p>
+            </div>
+
+            <Link
+              to="/authority/complaints"
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Back to Complaints
+            </Link>
+
+          </div>
+        </nav>
+
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+            <p className="text-sm text-slate-500">
+              Loading complaint details...
+            </p>
+          </div>
+        </main>
+
+      </div>
+    );
+  }
+
+  if (error || !complaint) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+
+        <nav className="border-b bg-white">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+
+            <div>
+              <h1 className="text-xl font-bold text-blue-900">
+                Civic Connect
+              </h1>
+
+              <p className="text-xs text-slate-500">
+                Authority Portal
+              </p>
+            </div>
+
+            <Link
+              to="/authority/complaints"
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Back to Complaints
+            </Link>
+
+          </div>
+        </nav>
+
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="rounded-xl border border-red-200 bg-white p-8 text-center shadow-sm">
+
+            <p className="text-sm font-medium text-red-600">
+              {error || "Complaint not found."}
+            </p>
+
+            <button
+              type="button"
+              onClick={fetchComplaint}
+              className="mt-4 rounded-lg bg-blue-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-800"
+            >
+              Try Again
+            </button>
+
+          </div>
+        </main>
+
+      </div>
+    );
+  }
+
+  const media = complaint.complaint_media || [];
+  const timeline = getTimeline();
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -94,12 +275,12 @@ export default function AuthorityComplaintDetails() {
               </h2>
 
               <p className="mt-1 text-sm text-slate-500">
-                Complaint ID: {id}
+                Complaint ID: {complaint.id}
               </p>
             </div>
 
             <span className="w-fit rounded-full bg-orange-100 px-4 py-2 text-sm font-semibold text-orange-700">
-              {complaint.priority} Priority
+              {formatText(complaint.priority)} Priority
             </span>
 
           </div>
@@ -136,7 +317,7 @@ export default function AuthorityComplaintDetails() {
                   </p>
 
                   <p className="mt-1 font-semibold text-slate-800">
-                    {complaint.category}
+                    {formatText(complaint.category)}
                   </p>
                 </div>
 
@@ -146,7 +327,7 @@ export default function AuthorityComplaintDetails() {
                   </p>
 
                   <p className="mt-1 font-semibold text-slate-800">
-                    {complaint.date}
+                    {formatDate(complaint.created_at)}
                   </p>
                 </div>
 
@@ -156,7 +337,7 @@ export default function AuthorityComplaintDetails() {
                   </p>
 
                   <span className="mt-1 inline-block rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
-                    {complaint.status}
+                    {formatText(complaint.status)}
                   </span>
                 </div>
 
@@ -169,7 +350,7 @@ export default function AuthorityComplaintDetails() {
                 </p>
 
                 <p className="mt-2 leading-7 text-slate-700">
-                  {complaint.description}
+                  {complaint.description || "No description provided."}
                 </p>
 
               </div>
@@ -183,18 +364,33 @@ export default function AuthorityComplaintDetails() {
                 Uploaded Image
               </h3>
 
-              <div className="mt-4 overflow-hidden rounded-lg">
+              {media.length > 0 ? (
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-                <img
-                  src={complaint.image}
-                  alt="Complaint"
-                  className="h-72 w-full object-cover"
-                />
+                  {media.map((image) => (
+                    <div
+                      key={image.id}
+                      className="overflow-hidden rounded-lg"
+                    >
+                      <img
+                        src={image.file_url}
+                        alt={image.file_name || "Complaint"}
+                        className="h-72 w-full object-cover"
+                      />
+                    </div>
+                  ))}
 
-              </div>
+                </div>
+              ) : (
+                <div className="mt-4 flex h-48 items-center justify-center rounded-lg bg-slate-100">
+                  <p className="text-sm text-slate-500">
+                    No image uploaded with this complaint.
+                  </p>
+                </div>
+              )}
 
               <p className="mt-2 text-xs text-slate-500">
-                Image uploaded by citizen with the complaint.
+                Images uploaded by citizen with the complaint.
               </p>
 
             </div>
@@ -207,7 +403,7 @@ export default function AuthorityComplaintDetails() {
               </h3>
 
               <p className="mt-3 text-slate-700">
-                {complaint.location}
+                {complaint.address || "Location not provided"}
               </p>
 
               <div className="mt-4 flex h-48 items-center justify-center rounded-lg bg-slate-100">
@@ -223,7 +419,8 @@ export default function AuthorityComplaintDetails() {
                   </p>
 
                   <p className="text-xs text-slate-400">
-                    Map integration will be added later.
+                    Latitude: {complaint.latitude ?? "—"} | Longitude:{" "}
+                    {complaint.longitude ?? "—"}
                   </p>
 
                 </div>
@@ -251,8 +448,8 @@ export default function AuthorityComplaintDetails() {
                     Citizen
                   </p>
 
-                  <p className="mt-1 font-semibold text-slate-800">
-                    {complaint.citizen}
+                  <p className="mt-1 break-all font-semibold text-slate-800">
+                    {complaint.user_id || "Citizen information unavailable"}
                   </p>
                 </div>
 
@@ -262,7 +459,7 @@ export default function AuthorityComplaintDetails() {
                   </p>
 
                   <p className="mt-1 text-slate-700">
-                    {complaint.location}
+                    {complaint.address || "Location not provided"}
                   </p>
                 </div>
 
@@ -330,7 +527,7 @@ export default function AuthorityComplaintDetails() {
 
                   <div
                     className={`h-4 w-4 rounded-full ${
-                      index <= 1
+                      item.completed
                         ? "bg-blue-800"
                         : "bg-slate-300"
                     }`}

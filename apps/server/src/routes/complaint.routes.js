@@ -4,6 +4,7 @@ import multer from "multer";
 import {
   createComplaint,
   getMyComplaints,
+  getAllComplaints,
   getComplaintById,
 } from "../controllers/complaint.controller.js";
 
@@ -12,16 +13,12 @@ import { requireRole } from "../middleware/role.middleware.js";
 
 const router = express.Router();
 
-
-// Multer configuration for complaint images
 const upload = multer({
   storage: multer.memoryStorage(),
-
   limits: {
     files: 5,
     fileSize: 5 * 1024 * 1024,
   },
-
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith("image/")) {
       cb(null, true);
@@ -33,20 +30,26 @@ const upload = multer({
 
 
 // Debug authentication
+router.get("/debug-auth", authMiddleware, (req, res) => {
+  res.json({
+    success: true,
+    userId: req.user.id,
+    accessTokenPresent: !!req.user.accessToken,
+    role: req.user.role,
+  });
+});
+
+
+// Get all complaints - Authority only
 router.get(
-  "/debug-auth",
+  "/",
   authMiddleware,
-  (req, res) => {
-    res.json({
-      success: true,
-      userId: req.user.id,
-      accessTokenPresent: !!req.user.accessToken,
-    });
-  }
+  requireRole("authority"),
+  getAllComplaints
 );
 
 
-// Get complaints belonging to logged-in citizen
+// Get complaints submitted by logged-in citizen
 router.get(
   "/my",
   authMiddleware,
@@ -54,14 +57,18 @@ router.get(
   getMyComplaints
 );
 
+
+// Get a single complaint
+// Citizens can access their own complaints.
+// Authorities can access any complaint.
 router.get(
   "/:id",
   authMiddleware,
-  requireRole("citizen"),
   getComplaintById
 );
 
-// Create complaint
+
+// Create a complaint - Citizen only
 router.post(
   "/",
   authMiddleware,
@@ -69,6 +76,5 @@ router.post(
   upload.array("images", 5),
   createComplaint
 );
-
 
 export default router;

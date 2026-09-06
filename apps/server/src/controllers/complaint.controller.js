@@ -201,7 +201,62 @@ export const getMyComplaints = async (req, res) => {
 };
 
 
-// Get a single complaint belonging to the logged-in citizen
+// Get all complaints for the authority dashboard
+export const getAllComplaints = async (req, res) => {
+  try {
+    const authenticatedSupabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_KEY,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${req.user.accessToken}`,
+          },
+        },
+      }
+    );
+
+    const { data: complaints, error } = await authenticatedSupabase
+      .from("complaints")
+      .select(`
+        *,
+        complaint_media (
+          id,
+          file_url,
+          file_type,
+          file_name,
+          created_at
+        )
+      `)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Get all complaints error:", error);
+
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    return res.json({
+      success: true,
+      complaints: complaints || [],
+    });
+  } catch (error) {
+    console.error("Get all complaints error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+
+// Get a single complaint
+// Citizens can only view their own complaints.
+// Authorities can view any complaint.
 export const getComplaintById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -225,7 +280,7 @@ export const getComplaintById = async (req, res) => {
       }
     );
 
-    const { data: complaint, error } = await authenticatedSupabase
+    let query = authenticatedSupabase
       .from("complaints")
       .select(`
         *,
@@ -237,9 +292,15 @@ export const getComplaintById = async (req, res) => {
           created_at
         )
       `)
-      .eq("id", id)
-      .eq("user_id", req.user.id)
-      .single();
+      .eq("id", id);
+
+    // Citizens can only access their own complaints.
+    // Authorities can access any complaint.
+    if (req.user.role !== "authority") {
+      query = query.eq("user_id", req.user.id);
+    }
+
+    const { data: complaint, error } = await query.single();
 
     if (error || !complaint) {
       console.error("Get complaint by ID error:", error);
@@ -263,4 +324,3 @@ export const getComplaintById = async (req, res) => {
     });
   }
 };
-
