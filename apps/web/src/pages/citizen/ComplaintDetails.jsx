@@ -65,7 +65,11 @@ export default function ComplaintDetails() {
           );
         }
 
-        setComplaint(data.complaint);
+        console.log(
+  "COMPLAINT MEDIA:",
+  JSON.stringify(data.complaint.complaint_media, null, 2)
+);
+setComplaint(data.complaint);
       } catch (err) {
         console.error("Complaint details error:", err);
         setError(err.message || "Unable to load complaint.");

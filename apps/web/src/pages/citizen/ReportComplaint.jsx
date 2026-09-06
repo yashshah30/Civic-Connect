@@ -143,9 +143,7 @@ const ReportComplaint = () => {
     const validateForm = () => {
         const newErrors = {};
 
-        if (!form.title.trim()) {
-            newErrors.title = "Title is required.";
-        }
+      
 
         if (!form.description.trim()) {
             newErrors.description = "Description is required.";
@@ -174,11 +172,16 @@ const ReportComplaint = () => {
 
     const handleSubmit = async (event) => {
     event.preventDefault();
+    console.log("SUBMIT CLICKED");
 
-    if (!validateForm()) {
-        setSuccess(false);
-        return;
-    }
+   if (!validateForm()) {
+    console.log("VALIDATION FAILED", errors);
+    console.log("FORM DATA:", form);
+    setSuccess(false);
+    return;
+}
+
+console.log("VALIDATION PASSED");
 
     try {
         const token = localStorage.getItem("access_token");
@@ -367,6 +370,31 @@ return (
     </p>
 </div>
 
+<div>
+    <label className="mb-2 block text-sm font-semibold text-slate-700">
+        Complaint Title <span className="text-red-500">*</span>
+    </label>
+
+    <input
+        type="text"
+        value={form.title}
+        onChange={(e) =>
+            setForm((previous) => ({
+                ...previous,
+                title: e.target.value,
+            }))
+        }
+        placeholder="Enter a short title for your complaint"
+        className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+    />
+
+    {errors.title && (
+        <p className="mt-1 text-sm text-red-500">
+            {errors.title}
+        </p>
+    )}
+</div>
+
                         {/* Description */}
                         <div>
                             <div className="mb-2 flex items-center justify-between">
@@ -443,7 +471,7 @@ return (
                     </div>
                 </Card>
 
-                {/* Location */}
+                
                 {/* Location */}
 <Card>
     <div className="mb-6 flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
@@ -610,6 +638,71 @@ return (
 
     </div>
 </Card>
+
+{/* Supporting Evidence */}
+<Card>
+    <div className="mb-6 border-b border-slate-100 pb-5">
+        <h2 className="text-lg font-bold text-slate-900">
+            Supporting Evidence
+        </h2>
+        <p className="mt-1 text-sm text-slate-500">
+            Upload photos that help explain the issue.
+        </p>
+    </div>
+
+    <label className="group flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center transition hover:border-blue-400 hover:bg-blue-50">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-100 text-blue-900 transition group-hover:scale-105">
+            <FiUpload size={25} />
+        </div>
+
+        <p className="mt-4 font-semibold text-slate-800">
+            Upload complaint images
+        </p>
+
+        <p className="mt-1 text-sm text-slate-500">
+            Click here to select one or more images
+        </p>
+
+        <p className="mt-2 text-xs text-slate-400">
+            PNG, JPG or JPEG
+        </p>
+
+        <input
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleImageChange}
+            className="hidden"
+        />
+    </label>
+
+    {images.length > 0 && (
+        <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+            {images.map((image, index) => (
+                <div
+                    key={`${image.preview}-${index}`}
+                    className="group relative overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm"
+                >
+                    <img
+                        src={image.preview}
+                        alt={`Complaint preview ${index + 1}`}
+                        className="h-36 w-full object-cover"
+                    />
+
+                    <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute right-2 top-2 rounded-full bg-red-600 p-1.5 text-white opacity-0 shadow transition group-hover:opacity-100 hover:bg-red-700"
+                        aria-label="Remove image"
+                    >
+                        <FiX size={16} />
+                    </button>
+                </div>
+            ))}
+        </div>
+    )}
+</Card>
+
 
                 {/* Submit */}
                 <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
