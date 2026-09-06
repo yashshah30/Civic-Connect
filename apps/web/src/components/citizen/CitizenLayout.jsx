@@ -40,7 +40,7 @@ export default function CitizenLayout() {
         </button>
       </header>
 
-      <div className="flex min-h-[calc(100vh-73px)] lg:min-h-screen">
+      <div className="flex min-h-screen">
         {/* Desktop Sidebar */}
         <div className="hidden lg:flex">
           <CitizenSidebar onLogout={handleLogout} />

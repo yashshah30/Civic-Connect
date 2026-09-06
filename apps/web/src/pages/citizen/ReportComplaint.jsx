@@ -1,7 +1,13 @@
+import LocationPicker from "../../components/ui/LocationPicker";
 import { useState } from "react";
-import { FiCheckCircle, FiMapPin, FiUpload, FiX } from "react-icons/fi";
+import {
+    FiCheckCircle,
+    FiMapPin,
+    FiUpload,
+    FiX,
+    FiPlusCircle,
+} from "react-icons/fi";
 
-import Navbar from "../../components/layout/navbar";
 import Card from "../../components/ui/card";
 
 const categories = [
@@ -65,21 +71,74 @@ const ReportComplaint = () => {
         );
     };
 
-    const useCurrentLocation = () => {
-        setForm((previous) => ({
-            ...previous,
-            location: "Bhopal, Madhya Pradesh",
-            latitude: "23.2599",
-            longitude: "77.4126",
-        }));
+    const getAddressFromCoordinates = async (latitude, longitude) => {
+    try {
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+        );
 
-        setErrors((previous) => ({
-            ...previous,
-            location: "",
-            latitude: "",
-            longitude: "",
-        }));
-    };
+        if (!response.ok) {
+            throw new Error("Failed to get address");
+        }
+
+        const data = await response.json();
+
+        return data.display_name || "";
+    } catch (error) {
+        console.error("Reverse geocoding error:", error);
+        return "";
+    }
+};
+    
+
+    const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const latitude = position.coords.latitude.toFixed(6);
+            const longitude = position.coords.longitude.toFixed(6);
+
+            const address = await getAddressFromCoordinates(
+                latitude,
+                longitude
+            );
+
+            setForm((previous) => ({
+                ...previous,
+                latitude,
+                longitude,
+                location: address || "Current location selected",
+            }));
+
+            setErrors((previous) => ({
+                ...previous,
+                location: "",
+                latitude: "",
+                longitude: "",
+            }));
+        },
+        (error) => {
+            console.error("Location error:", error);
+
+            if (error.code === 1) {
+                alert(
+                    "Location permission denied. Please allow location access in your browser."
+                );
+            } else {
+                alert("Unable to get your current location.");
+            }
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0,
+        }
+    );
+};
 
     const validateForm = () => {
         const newErrors = {};
@@ -155,13 +214,25 @@ const ReportComplaint = () => {
             }
         );
 
-        const data = await response.json();
+        const responseText = await response.text();
 
-        if (!response.ok || !data.success) {
-            throw new Error(
-                data.message || "Failed to submit complaint"
-            );
-        }
+let data = {};
+
+if (responseText) {
+    try {
+        data = JSON.parse(responseText);
+    } catch {
+        data = {
+            message: responseText,
+        };
+    }
+}
+
+if (!response.ok || !data.success) {
+    throw new Error(
+        data.message || "Failed to submit complaint"
+    );
+}
 
         console.log("Complaint created:", data.complaint);
         console.log("Uploaded media:", data.media);
@@ -191,86 +262,126 @@ const ReportComplaint = () => {
     }
 };
 
-    return (
-        <div className="min-h-screen bg-slate-50">
-            <Navbar />
+return (
+    <div className="min-h-screen bg-slate-50">
+        <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
 
-            <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-
-                {/* Header */}
-                <div className="mb-8">
-                    <p className="text-sm font-semibold text-blue-900">
-                        Citizen Portal
-                    </p>
-
-                    <h1 className="mt-1 text-3xl font-bold text-slate-900">
-                        Report a Complaint
-                    </h1>
-
-                    <p className="mt-2 text-slate-600">
-                        Tell us about an issue in your area.
-                    </p>
+            {/* Page Header */}
+            <div className="mb-8">
+                <div className="flex items-center gap-2 text-sm font-medium text-blue-900">
+                    <FiPlusCircle size={17} />
+                    Citizen Portal
                 </div>
 
-                {/* Success message */}
-                {success && (
-                    <div className="mb-6 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-green-800">
-                        <FiCheckCircle className="mt-0.5 shrink-0" size={20} />
+                <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+                    Report a Complaint
+                </h1>
 
-                        <div>
-                            <p className="font-semibold">
-                                Complaint submitted successfully!
-                            </p>
+                <p className="mt-2 max-w-2xl text-sm text-slate-600 sm:text-base">
+                    Help improve your community by reporting an issue in your area.
+                    Provide accurate details so the concerned authority can take action.
+                </p>
+            </div>
 
-                            <p className="mt-1 text-sm">
-    Your complaint has been submitted successfully and is now under review.
-</p>
-                        </div>
+            {/* Success Message */}
+            {success && (
+                <div className="mb-6 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 p-5 text-green-800 shadow-sm">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100">
+                        <FiCheckCircle size={20} />
                     </div>
-                )}
 
+                    <div>
+                        <p className="font-semibold">
+                            Complaint submitted successfully!
+                        </p>
+
+                        <p className="mt-1 text-sm text-green-700">
+                            Your complaint has been submitted and is now under review.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+
+                {/* Complaint Information */}
                 <Card>
-                    <form onSubmit={handleSubmit} className="space-y-6">
+                    <div className="mb-6 border-b border-slate-100 pb-5">
+                        <h2 className="text-lg font-bold text-slate-900">
+                            Complaint Information
+                        </h2>
+
+                        <p className="mt-1 text-sm text-slate-500">
+                            Tell us what issue you are experiencing.
+                        </p>
+                    </div>
+
+                    <div className="space-y-6">
 
                         {/* Title */}
                         <div>
-                            <label className="mb-2 block font-medium text-slate-700">
-                                Complaint Title *
-                            </label>
+    <div className="mb-2 flex items-center justify-between">
+        <label className="text-sm font-semibold text-slate-700">
+            Address <span className="text-red-500">*</span>
+        </label>
 
-                            <input
-                                type="text"
-                                name="title"
-                                value={form.title}
-                                onChange={handleChange}
-                                placeholder="Example: Road pothole near college"
-                                className={`w-full rounded-xl border p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${errors.title
-                                    ? "border-red-400"
-                                    : "border-slate-300"
-                                    }`}
-                            />
+        {form.location && (
+            <span className="text-xs font-medium text-emerald-600">
+                Location detected
+            </span>
+        )}
+    </div>
 
-                            {errors.title && (
-                                <p className="mt-1 text-sm text-red-600">
-                                    {errors.title}
-                                </p>
-                            )}
-                        </div>
+    <div className="relative">
+        <FiMapPin
+            className="absolute left-4 top-4 text-slate-400"
+            size={18}
+        />
+
+        <textarea
+            rows={2}
+            value={form.location}
+            onChange={(e) =>
+                setForm((previous) => ({
+                    ...previous,
+                    location: e.target.value,
+                }))
+            }
+            placeholder="Enter the complaint location"
+            className={`w-full resize-none rounded-xl border bg-slate-50 py-3.5 pl-11 pr-4 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-2 ${
+                errors.location
+                    ? "border-red-300 focus:border-red-400 focus:ring-red-100"
+                    : "border-slate-200 focus:border-blue-500 focus:ring-blue-100"
+            }`}
+        />
+    </div>
+
+    {errors.location && (
+        <p className="mt-1.5 text-xs text-red-500">
+            {errors.location}
+        </p>
+    )}
+
+    <p className="mt-2 text-xs text-slate-400">
+        You can enter the address manually or select a location on the map.
+    </p>
+</div>
 
                         {/* Description */}
                         <div>
                             <div className="mb-2 flex items-center justify-between">
-                                <label className="font-medium text-slate-700">
-                                    Description *
+                                <label className="text-sm font-semibold text-slate-700">
+                                    Description <span className="text-red-500">*</span>
                                 </label>
 
                                 <span
-                                    className={`text-sm ${form.description.length > 500
-                                        ? "text-red-600"
-                                        : "text-slate-500"
-                                        }`}
+                                    className={`text-xs font-medium ${
+                                        form.description.length >= 450
+                                            ? "text-red-600"
+                                            : "text-slate-400"
+                                    }`}
                                 >
-                                    {form.description.length} / 500
+                                    {form.description.length}/500
                                 </span>
                             </div>
 
@@ -282,16 +393,17 @@ const ReportComplaint = () => {
                                         handleChange(event);
                                     }
                                 }}
-                                rows={5}
-                                placeholder="Describe the problem..."
-                                className={`w-full resize-none rounded-xl border p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${errors.description
-                                    ? "border-red-400"
-                                    : "border-slate-300"
-                                    }`}
+                                rows={6}
+                                placeholder="Describe the problem, when you noticed it, and how it is affecting the area..."
+                                className={`w-full resize-none rounded-xl border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-800 focus:ring-4 focus:ring-blue-100 ${
+                                    errors.description
+                                        ? "border-red-400"
+                                        : "border-slate-300"
+                                }`}
                             />
 
                             {errors.description && (
-                                <p className="mt-1 text-sm text-red-600">
+                                <p className="mt-2 text-sm text-red-600">
                                     {errors.description}
                                 </p>
                             )}
@@ -299,22 +411,21 @@ const ReportComplaint = () => {
 
                         {/* Category */}
                         <div>
-                            <label className="mb-2 block font-medium text-slate-700">
-                                Category *
+                            <label className="mb-2 block text-sm font-semibold text-slate-700">
+                                Category <span className="text-red-500">*</span>
                             </label>
 
                             <select
                                 name="category"
                                 value={form.category}
                                 onChange={handleChange}
-                                className={`w-full rounded-xl border bg-white p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${errors.category
-                                    ? "border-red-400"
-                                    : "border-slate-300"
-                                    }`}
+                                className={`w-full rounded-xl border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-800 focus:ring-4 focus:ring-blue-100 ${
+                                    errors.category
+                                        ? "border-red-400"
+                                        : "border-slate-300"
+                                }`}
                             >
-                                <option value="">
-                                    Select category
-                                </option>
+                                <option value="">Select complaint category</option>
 
                                 {categories.map((category) => (
                                     <option key={category} value={category}>
@@ -324,164 +435,196 @@ const ReportComplaint = () => {
                             </select>
 
                             {errors.category && (
-                                <p className="mt-1 text-sm text-red-600">
+                                <p className="mt-2 text-sm text-red-600">
                                     {errors.category}
                                 </p>
                             )}
                         </div>
-
-                        {/* Location */}
-                        <div>
-                            <div className="mb-4 flex items-center justify-between">
-                                <label className="font-medium text-slate-700">
-                                    Location *
-                                </label>
-
-                                <button
-                                    type="button"
-                                    onClick={useCurrentLocation}
-                                    className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-900 hover:bg-blue-100"
-                                >
-                                    <FiMapPin />
-                                    Use Current Location
-                                </button>
-                            </div>
-
-                            <input
-                                type="text"
-                                name="location"
-                                value={form.location}
-                                onChange={handleChange}
-                                placeholder="Enter location / address"
-                                className={`w-full rounded-xl border p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${errors.location
-                                    ? "border-red-400"
-                                    : "border-slate-300"
-                                    }`}
-                            />
-
-                            {errors.location && (
-                                <p className="mt-1 text-sm text-red-600">
-                                    {errors.location}
-                                </p>
-                            )}
-
-                            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-slate-700">
-                                        Latitude *
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        name="latitude"
-                                        value={form.latitude}
-                                        onChange={handleChange}
-                                        placeholder="23.2599"
-                                        className="w-full rounded-xl border border-slate-300 p-3 outline-none focus:border-blue-800"
-                                    />
-
-                                    {errors.latitude && (
-                                        <p className="mt-1 text-sm text-red-600">
-                                            {errors.latitude}
-                                        </p>
-                                    )}
-                                </div>
-
-                                <div>
-                                    <label className="mb-2 block text-sm font-medium text-slate-700">
-                                        Longitude *
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        name="longitude"
-                                        value={form.longitude}
-                                        onChange={handleChange}
-                                        placeholder="77.4126"
-                                        className="w-full rounded-xl border border-slate-300 p-3 outline-none focus:border-blue-800"
-                                    />
-
-                                    {errors.longitude && (
-                                        <p className="mt-1 text-sm text-red-600">
-                                            {errors.longitude}
-                                        </p>
-                                    )}
-                                </div>
-
-                            </div>
-                        </div>
-
-                        {/* Images */}
-                        <div>
-                            <label className="mb-2 block font-medium text-slate-700">
-                                Upload Images
-                            </label>
-
-                            <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center hover:bg-slate-100">
-                                <FiUpload
-                                    size={28}
-                                    className="text-blue-900"
-                                />
-
-                                <p className="mt-3 font-semibold text-slate-700">
-                                    Select complaint images
-                                </p>
-
-                                <p className="mt-1 text-sm text-slate-500">
-                                    You can select multiple images.
-                                </p>
-
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    onChange={handleImageChange}
-                                    className="hidden"
-                                />
-                            </label>
-
-                            {/* Image previews */}
-                            {images.length > 0 && (
-                                <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
-                                    {images.map((image, index) => (
-                                        <div
-                                            key={`${image.preview}-${index}`}
-                                            className="relative overflow-hidden rounded-xl border border-slate-200 bg-white"
-                                        >
-                                            <img
-                                                src={image.preview}
-                                                alt={`Complaint preview ${index + 1}`}
-                                                className="h-32 w-full object-cover"
-                                            />
-
-                                            <button
-                                                type="button"
-                                                onClick={() => removeImage(index)}
-                                                className="absolute right-2 top-2 rounded-full bg-red-600 p-1.5 text-white shadow hover:bg-red-700"
-                                                aria-label="Remove image"
-                                            >
-                                                <FiX size={16} />
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Submit */}
-                        <button
-                            type="submit"
-                            className="w-full rounded-xl bg-blue-900 px-5 py-3 font-semibold text-white transition hover:bg-blue-800"
-                        >
-                            Submit Complaint
-                        </button>
-
-                    </form>
+                    </div>
                 </Card>
-            </main>
-        </div>
-    );
-};
 
+                {/* Location */}
+                {/* Location */}
+<Card>
+    <div className="mb-6 flex flex-col gap-4 border-b border-slate-100 pb-5 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h2 className="text-lg font-bold text-slate-900">
+                Location
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+                Tell us where the issue is located.
+            </p>
+        </div>
+
+        <button
+            type="button"
+            onClick={useCurrentLocation}
+            className="flex items-center justify-center gap-2 rounded-xl bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-900 transition hover:bg-blue-100"
+        >
+            <FiMapPin size={17} />
+            Use Current Location
+        </button>
+    </div>
+
+    <div className="space-y-5">
+
+        {/* Address */}
+        <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700">
+                Address <span className="text-red-500">*</span>
+            </label>
+
+            <input
+                type="text"
+                name="location"
+                value={form.location}
+                onChange={handleChange}
+                placeholder="Enter location or address"
+                className={`w-full rounded-xl border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-800 focus:ring-4 focus:ring-blue-100 ${
+                    errors.location
+                        ? "border-red-400"
+                        : "border-slate-300"
+                }`}
+            />
+
+            {errors.location && (
+                <p className="mt-2 text-sm text-red-600">
+                    {errors.location}
+                </p>
+            )}
+        </div>
+
+        {/* Map */}
+        <div>
+            <div className="mb-2 flex items-center justify-between">
+                <label className="text-sm font-semibold text-slate-700">
+                    Select Location <span className="text-red-500">*</span>
+                </label>
+
+                <span className="text-xs text-slate-400">
+                    Click on the map to select
+                </span>
+            </div>
+
+            <LocationPicker
+    latitude={form.latitude}
+    longitude={form.longitude}
+    onLocationSelect={async ({ latitude, longitude }) => {
+        const address = await getAddressFromCoordinates(
+            latitude,
+            longitude
+        );
+
+        setForm((previous) => ({
+            ...previous,
+            latitude,
+            longitude,
+            location: address || previous.location,
+        }));
+
+        setErrors((previous) => ({
+            ...previous,
+            location: "",
+            latitude: "",
+            longitude: "",
+        }));
+    }}
+/>
+
+{form.latitude && form.longitude && (
+    <div className="mt-3 flex items-center gap-3 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+            <FiCheckCircle size={17} />
+        </div>
+
+        <div>
+            <p className="text-sm font-semibold text-emerald-800">
+                Location selected
+            </p>
+            <p className="mt-0.5 text-xs text-emerald-600">
+                {form.latitude}, {form.longitude}
+            </p>
+        </div>
+    </div>
+)}
+            
+        </div>
+
+        {/* Coordinates */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+
+            {/* Latitude */}
+            <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Latitude <span className="text-red-500">*</span>
+                </label>
+
+                <input
+                    type="text"
+                    name="latitude"
+                    value={form.latitude}
+                    onChange={handleChange}
+                    placeholder="23.2599"
+                    className={`w-full rounded-xl border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-800 focus:ring-4 focus:ring-blue-100 ${
+                        errors.latitude
+                            ? "border-red-400"
+                            : "border-slate-300"
+                    }`}
+                />
+
+                {errors.latitude && (
+                    <p className="mt-2 text-sm text-red-600">
+                        {errors.latitude}
+                    </p>
+                )}
+            </div>
+
+            {/* Longitude */}
+            <div>
+                <label className="mb-2 block text-sm font-semibold text-slate-700">
+                    Longitude <span className="text-red-500">*</span>
+                </label>
+
+                <input
+                    type="text"
+                    name="longitude"
+                    value={form.longitude}
+                    onChange={handleChange}
+                    placeholder="77.4126"
+                    className={`w-full rounded-xl border bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-800 focus:ring-4 focus:ring-blue-100 ${
+                        errors.longitude
+                            ? "border-red-400"
+                            : "border-slate-300"
+                    }`}
+                />
+
+                {errors.longitude && (
+                    <p className="mt-2 text-sm text-red-600">
+                        {errors.longitude}
+                    </p>
+                )}
+            </div>
+
+        </div>
+
+    </div>
+</Card>
+
+                {/* Submit */}
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <button
+                        type="submit"
+                        className="flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-8 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800 hover:shadow-md"
+                    >
+                        <FiCheckCircle size={18} />
+                        Submit Complaint
+                    </button>
+                </div>
+
+            </form>
+        </main>
+    </div>
+);
+};
 export default ReportComplaint;
