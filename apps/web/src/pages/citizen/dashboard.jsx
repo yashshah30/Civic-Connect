@@ -15,73 +15,66 @@ export default function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
-    // Fetch logged-in citizen's complaints
-    useEffect(() => {
-        const token = localStorage.getItem("access_token");
+    // Fetch logged-in citizen's profile and complaints
+useEffect(() => {
+    const fetchDashboardData = async () => {
+        try {
+            setLoading(true);
+            setError("");
 
-if (!token) {
-    navigate("/login");
-    return;
-}
+            const token = localStorage.getItem("access_token");
 
-const userResponse = await fetch(
-    `${import.meta.env.VITE_API_URL}/api/auth/me`,
-    {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    }
-);
-
-const userData = await userResponse.json();
-
-if (userResponse.ok && userData.success) {
-    setUserName(userData.user.name || "Citizen");
-}
-
-        const fetchComplaints = async () => {
-            try {
-                setLoading(true);
-                setError("");
-
-                const token = localStorage.getItem("access_token");
-
-                if (!token) {
-                    navigate("/login");
-                    return;
-                }
-
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/complaints/my`,
-                    {
-                        method: "GET",
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
-                );
-
-                const data = await response.json();
-
-                if (!response.ok || !data.success) {
-                    throw new Error(
-                        data.message || "Failed to load complaints."
-                    );
-                }
-
-                setComplaints(data.complaints || []);
-            } catch (error) {
-                console.error("Dashboard complaints error:", error);
-
-                setError(
-                    error.message || "Failed to load complaints."
-                );
-            } finally {
-                setLoading(false);
+            if (!token) {
+                navigate("/login");
+                return;
             }
-        };
 
-        fetchComplaints();
-    }, [navigate]);
+            // Fetch logged-in citizen's profile
+            const userResponse = await fetch(
+                `${import.meta.env.VITE_API_URL}/api/auth/me`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            const userData = await userResponse.json();
+
+            if (userResponse.ok && userData.success) {
+                setUserName(userData.user.name || "Citizen");
+            }
+
+            // Fetch logged-in citizen's complaints
+            const response = await fetch(
+                `${import.meta.env.VITE_API_URL}/api/complaints/my`,
+                {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data.message || "Failed to load complaints."
+                );
+            }
+
+            setComplaints(data.complaints || []);
+        } catch (error) {
+            console.error("Dashboard error:", error);
+            setError(error.message || "Failed to load dashboard.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    fetchDashboardData();
+}, [navigate]);
 
     // Calculate statistics from real complaints
     const total = complaints.length;
