@@ -2,6 +2,8 @@ import express from "express";
 
 import {
   getComplaints,
+  getCitizenComplaints,
+  getCitizenComplaintById,
   createComplaint,
   updateComplaint,
 } from "../controllers/complaint.controller.js";
@@ -12,6 +14,9 @@ import { requireRole } from "../middleware/role.middleware.js";
 const router = express.Router();
 
 
+/*
+ * Debug authentication.
+ */
 router.get(
   "/debug-auth",
   authMiddleware,
@@ -26,14 +31,35 @@ router.get(
 
 
 /*
- * Get all complaints.
- * Authorities can view complaints.
+ * Citizens can view all of their own complaints.
+ */
+router.get(
+  "/my",
+  authMiddleware,
+  requireRole("citizen"),
+  getCitizenComplaints
+);
+
+
+/*
+ * Authorities can view all complaints.
  */
 router.get(
   "/",
   authMiddleware,
   requireRole("authority"),
   getComplaints
+);
+
+
+/*
+ * Citizens can view one of their own complaints.
+ */
+router.get(
+  "/:id",
+  authMiddleware,
+  requireRole("citizen"),
+  getCitizenComplaintById
 );
 
 

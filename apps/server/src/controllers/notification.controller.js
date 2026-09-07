@@ -14,20 +14,21 @@ const getAuthenticatedSupabase = (req) => {
   );
 };
 
-/**
- * Get notifications for the logged-in citizen.
- * Also attaches complaint and department information.
- */
 export const getNotifications = async (req, res) => {
   try {
-    const authenticatedSupabase = getAuthenticatedSupabase(req);
+    const authenticatedSupabase =
+      getAuthenticatedSupabase(req);
 
-    const { data: notifications, error: notificationError } =
-      await authenticatedSupabase
-        .from("notifications")
-        .select("*")
-        .eq("user_id", req.user.id)
-        .order("created_at", { ascending: false });
+    const {
+      data: notifications,
+      error: notificationError,
+    } = await authenticatedSupabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", req.user.id)
+      .order("created_at", {
+        ascending: false,
+      });
 
     if (notificationError) {
       console.error(
@@ -43,13 +44,13 @@ export const getNotifications = async (req, res) => {
 
     const notificationList = notifications || [];
 
-    /*
-     * Get all complaint IDs used by these notifications.
-     */
     const complaintIds = [
       ...new Set(
         notificationList
-          .map((notification) => notification.complaint_id)
+          .map(
+            (notification) =>
+              notification.complaint_id
+          )
           .filter(Boolean)
       ),
     ];
@@ -57,14 +58,16 @@ export const getNotifications = async (req, res) => {
     let complaints = [];
 
     if (complaintIds.length > 0) {
-      const { data: complaintData, error: complaintError } =
-        await authenticatedSupabase
-          .from("complaints")
-          .select(
-            "id, title, status, department_id, created_at, updated_at"
-          )
-          .in("id", complaintIds)
-          .eq("user_id", req.user.id);
+      const {
+        data: complaintData,
+        error: complaintError,
+      } = await authenticatedSupabase
+        .from("complaints")
+        .select(
+          "id, title, status, department_id, created_at, updated_at"
+        )
+        .in("id", complaintIds)
+        .eq("user_id", req.user.id);
 
       if (complaintError) {
         console.error(
@@ -76,13 +79,13 @@ export const getNotifications = async (req, res) => {
       }
     }
 
-    /*
-     * Get department names used by the complaints.
-     */
     const departmentIds = [
       ...new Set(
         complaints
-          .map((complaint) => complaint.department_id)
+          .map(
+            (complaint) =>
+              complaint.department_id
+          )
           .filter(Boolean)
       ),
     ];
@@ -90,11 +93,13 @@ export const getNotifications = async (req, res) => {
     let departments = [];
 
     if (departmentIds.length > 0) {
-      const { data: departmentData, error: departmentError } =
-        await authenticatedSupabase
-          .from("departments")
-          .select("id, name")
-          .in("id", departmentIds);
+      const {
+        data: departmentData,
+        error: departmentError,
+      } = await authenticatedSupabase
+        .from("departments")
+        .select("id, name")
+        .in("id", departmentIds);
 
       if (departmentError) {
         console.error(
@@ -106,21 +111,21 @@ export const getNotifications = async (req, res) => {
       }
     }
 
-    /*
-     * Attach complaint and department information
-     * to each notification.
-     */
-    const enrichedNotifications = notificationList.map(
-      (notification) => {
+    const enrichedNotifications =
+      notificationList.map((notification) => {
         const complaint = complaints.find(
-          (item) => item.id === notification.complaint_id
+          (item) =>
+            item.id === notification.complaint_id
         );
 
-        const department = complaint?.department_id
-          ? departments.find(
-              (item) => item.id === complaint.department_id
-            )
-          : null;
+        const department =
+          complaint?.department_id
+            ? departments.find(
+                (item) =>
+                  item.id ===
+                  complaint.department_id
+              )
+            : null;
 
         return {
           ...notification,
@@ -130,9 +135,12 @@ export const getNotifications = async (req, res) => {
                 id: complaint.id,
                 title: complaint.title,
                 status: complaint.status,
-                department_id: complaint.department_id,
-                created_at: complaint.created_at,
-                updated_at: complaint.updated_at,
+                department_id:
+                  complaint.department_id,
+                created_at:
+                  complaint.created_at,
+                updated_at:
+                  complaint.updated_at,
               }
             : null,
 
@@ -143,15 +151,17 @@ export const getNotifications = async (req, res) => {
               }
             : null,
         };
-      }
-    );
+      });
 
     return res.json({
       success: true,
       notifications: enrichedNotifications,
     });
   } catch (error) {
-    console.error("Get notifications error:", error);
+    console.error(
+      "Get notifications error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -160,11 +170,10 @@ export const getNotifications = async (req, res) => {
   }
 };
 
-
-/**
- * Mark one notification as read.
- */
-export const markNotificationAsRead = async (req, res) => {
+export const markNotificationAsRead = async (
+  req,
+  res
+) => {
   try {
     const { id } = req.params;
 
@@ -175,7 +184,8 @@ export const markNotificationAsRead = async (req, res) => {
       });
     }
 
-    const authenticatedSupabase = getAuthenticatedSupabase(req);
+    const authenticatedSupabase =
+      getAuthenticatedSupabase(req);
 
     console.log(
       "MARK AS READ REQUEST:",
@@ -183,15 +193,16 @@ export const markNotificationAsRead = async (req, res) => {
       req.user.id
     );
 
-    const { data, error } = await authenticatedSupabase
-      .from("notifications")
-      .update({
-        is_read: true,
-      })
-      .eq("id", id)
-      .eq("user_id", req.user.id)
-      .select()
-      .single();
+    const { data, error } =
+      await authenticatedSupabase
+        .from("notifications")
+        .update({
+          is_read: true,
+        })
+        .eq("id", id)
+        .eq("user_id", req.user.id)
+        .select()
+        .single();
 
     if (error) {
       console.error(
@@ -228,22 +239,22 @@ export const markNotificationAsRead = async (req, res) => {
   }
 };
 
-
-/**
- * Mark all notifications belonging to the
- * logged-in citizen as read.
- */
-export const markAllNotificationsAsRead = async (req, res) => {
+export const markAllNotificationsAsRead = async (
+  req,
+  res
+) => {
   try {
-    const authenticatedSupabase = getAuthenticatedSupabase(req);
+    const authenticatedSupabase =
+      getAuthenticatedSupabase(req);
 
-    const { error } = await authenticatedSupabase
-      .from("notifications")
-      .update({
-        is_read: true,
-      })
-      .eq("user_id", req.user.id)
-      .eq("is_read", false);
+    const { error } =
+      await authenticatedSupabase
+        .from("notifications")
+        .update({
+          is_read: true,
+        })
+        .eq("user_id", req.user.id)
+        .eq("is_read", false);
 
     if (error) {
       console.error(
@@ -259,7 +270,8 @@ export const markAllNotificationsAsRead = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "All notifications marked as read",
+      message:
+        "All notifications marked as read",
     });
   } catch (error) {
     console.error(
@@ -274,19 +286,75 @@ export const markAllNotificationsAsRead = async (req, res) => {
   }
 };
 
-
-/**
- * Delete all notifications belonging to
- * the logged-in citizen.
- */
-export const clearNotifications = async (req, res) => {
+export const deleteNotification = async (
+  req,
+  res
+) => {
   try {
-    const authenticatedSupabase = getAuthenticatedSupabase(req);
+    const { id } = req.params;
 
-    const { error } = await authenticatedSupabase
-      .from("notifications")
-      .delete()
-      .eq("user_id", req.user.id);
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: "Notification ID is required",
+      });
+    }
+
+    const authenticatedSupabase =
+      getAuthenticatedSupabase(req);
+
+    const { data, error } =
+      await authenticatedSupabase
+        .from("notifications")
+        .delete()
+        .eq("id", id)
+        .eq("user_id", req.user.id)
+        .select()
+        .single();
+
+    if (error) {
+      console.error(
+        "Delete notification error:",
+        error
+      );
+
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Notification cleared successfully",
+      notification: data,
+    });
+  } catch (error) {
+    console.error(
+      "Delete notification error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+export const clearNotifications = async (
+  req,
+  res
+) => {
+  try {
+    const authenticatedSupabase =
+      getAuthenticatedSupabase(req);
+
+    const { error } =
+      await authenticatedSupabase
+        .from("notifications")
+        .delete()
+        .eq("user_id", req.user.id);
 
     if (error) {
       console.error(
@@ -302,7 +370,8 @@ export const clearNotifications = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Notifications cleared successfully",
+      message:
+        "Notifications cleared successfully",
     });
   } catch (error) {
     console.error(

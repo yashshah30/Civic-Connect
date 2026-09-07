@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
     FiArrowLeft,
@@ -10,21 +11,124 @@ import Navbar from "../../components/layout/navbar";
 import Card from "../../components/ui/card";
 import StatusBadge from "../../components/citizen/StatusBadge";
 import StatusTimeline from "../../components/citizen/StatusTimeline";
-import mockComplaints from "../../data/mockComplaints";
+
+const API_BASE_URL =
+    import.meta.env.VITE_API_URL ||
+    "https://civic-connect-backend-6i78.onrender.com";
+
+const formatStatus = (status) => {
+    if (!status) {
+        return "Unknown";
+    }
+
+    return status
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
+const formatDate = (date) => {
+    if (!date) {
+        return "Date unavailable";
+    }
+
+    return new Date(date).toLocaleString();
+};
 
 const ComplaintDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
 
-    const complaint = mockComplaints.find(
-        (item) => item.id === id
-    );
+    const [complaint, setComplaint] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
+    useEffect(() => {
+        const fetchComplaint = async () => {
+            try {
+                setLoading(true);
+                setError("");
+
+                const token = localStorage.getItem("access_token");
+
+                if (!token) {
+                    throw new Error("Please log in again.");
+                }
+
+                const response = await fetch(
+                    `${API_BASE_URL}/api/complaints/${id}`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(
+                        data.message ||
+                            "Failed to load complaint."
+                    );
+                }
+
+                if (!data.complaint) {
+                    setError(
+                        "The complaint you're looking for does not exist or is no longer available."
+                    );
+                    setComplaint(null);
+                    return;
+                }
+
+                setComplaint(data.complaint);
+            } catch (error) {
+                console.error(
+                    "Fetch complaint error:",
+                    error
+                );
+
+                setError(
+                    error.message ||
+                        "Failed to load complaint."
+                );
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        if (id) {
+            fetchComplaint();
+        } else {
+            setError("Complaint ID is missing.");
+            setLoading(false);
+        }
+    }, [id]);
 
     const handlePrint = () => {
         window.print();
     };
 
-    if (!complaint) {
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-slate-50">
+                <Navbar />
+
+                <main className="mx-auto max-w-4xl px-4 py-12">
+                    <Card>
+                        <div className="py-8 text-center">
+                            <p className="text-sm text-slate-500">
+                                Loading complaint...
+                            </p>
+                        </div>
+                    </Card>
+                </main>
+            </div>
+        );
+    }
+
+    if (error || !complaint) {
         return (
             <div className="min-h-screen bg-slate-50">
                 <Navbar />
@@ -37,7 +141,8 @@ const ComplaintDetails = () => {
                             </h1>
 
                             <p className="mt-2 text-slate-500">
-                                The complaint you're looking for doesn't exist.
+                                {error ||
+                                    "The complaint you're looking for doesn't exist."}
                             </p>
 
                             <button
@@ -55,9 +160,14 @@ const ComplaintDetails = () => {
         );
     }
 
+    const location =
+        complaint.address ||
+        (complaint.latitude && complaint.longitude
+            ? `${complaint.latitude}, ${complaint.longitude}`
+            : "Location not provided");
+
     return (
         <div className="min-h-screen bg-slate-50 print:bg-white">
-
             <Navbar />
 
             <style>{`
@@ -111,15 +221,13 @@ const ComplaintDetails = () => {
 
                 {/* Header */}
                 <div className="mb-8 print:mb-4">
-
                     <p className="text-sm font-semibold text-blue-900">
                         Complaint Details
                     </p>
 
                     <div className="mt-2 flex flex-col justify-between gap-4 md:flex-row md:items-center">
-
                         <div>
-                            <p className="text-sm font-semibold text-slate-500">
+                            <p className="break-all text-sm font-semibold text-slate-500">
                                 #{complaint.id}
                             </p>
 
@@ -129,9 +237,10 @@ const ComplaintDetails = () => {
                         </div>
 
                         <StatusBadge
-                            status={complaint.status}
+                            status={formatStatus(
+                                complaint.status
+                            )}
                         />
-
                     </div>
                 </div>
 
@@ -141,7 +250,6 @@ const ComplaintDetails = () => {
                     <div className="space-y-6 lg:col-span-2 print:space-y-4">
 
                         <Card>
-
                             <h2 className="text-xl font-bold text-slate-900">
                                 Complaint Information
                             </h2>
@@ -176,7 +284,6 @@ const ComplaintDetails = () => {
 
                                 {/* Location */}
                                 <div className="flex items-start gap-2">
-
                                     <FiMapPin className="mt-1 text-blue-900" />
 
                                     <div>
@@ -185,15 +292,13 @@ const ComplaintDetails = () => {
                                         </p>
 
                                         <p className="mt-1 font-semibold text-slate-900">
-                                            {complaint.location}
+                                            {location}
                                         </p>
                                     </div>
-
                                 </div>
 
                                 {/* Date */}
                                 <div className="flex items-start gap-2">
-
                                     <FiCalendar className="mt-1 text-blue-900" />
 
                                     <div>
@@ -202,63 +307,50 @@ const ComplaintDetails = () => {
                                         </p>
 
                                         <p className="mt-1 font-semibold text-slate-900">
-                                            {complaint.date}
+                                            {formatDate(
+                                                complaint.created_at
+                                            )}
                                         </p>
                                     </div>
-
                                 </div>
 
                             </div>
-
                         </Card>
 
                         {/* Image */}
                         <Card>
-
                             <h2 className="text-xl font-bold text-slate-900">
                                 Uploaded Image
                             </h2>
 
-                            {complaint.image ? (
-                                <img
-                                    src={complaint.image}
-                                    alt={complaint.title}
-                                    className="mt-4 h-64 w-full rounded-xl object-cover"
-                                />
-                            ) : (
-                                <div className="mt-4 flex h-48 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
-                                    No image uploaded
-                                </div>
-                            )}
-
+                            <div className="mt-4 flex h-48 items-center justify-center rounded-xl bg-slate-100 text-slate-500">
+                                No image uploaded
+                            </div>
                         </Card>
 
                     </div>
 
                     {/* Tracking */}
                     <div className="print:mt-4">
-
                         <Card>
-
                             <h2 className="text-xl font-bold text-slate-900">
                                 Complaint Tracking
                             </h2>
 
                             <div className="mt-6">
                                 <StatusTimeline
-                                    currentStatus={complaint.status}
+                                    currentStatus={formatStatus(
+                                        complaint.status
+                                    )}
                                 />
                             </div>
-
                         </Card>
-
                     </div>
 
                 </div>
 
                 {/* Print Footer */}
                 <div className="mt-8 hidden border-t border-slate-300 pt-4 text-sm text-slate-500 print:block">
-
                     <p className="font-semibold text-slate-900">
                         CIVIC CONNECT
                     </p>
@@ -266,7 +358,6 @@ const ComplaintDetails = () => {
                     <p className="mt-1">
                         Official citizen complaint report generated from Civic Connect.
                     </p>
-
                 </div>
 
             </main>

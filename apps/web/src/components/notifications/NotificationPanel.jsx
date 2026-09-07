@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const API_BASE_URL =
     import.meta.env.VITE_API_URL ||
@@ -23,6 +24,8 @@ const formatDate = (date) => {
 };
 
 const NotificationPanel = () => {
+    const navigate = useNavigate();
+
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -202,6 +205,20 @@ const NotificationPanel = () => {
         }
     };
 
+    const handleNotificationClick = async (notification) => {
+        if (!notification.complaint?.id) {
+            return;
+        }
+
+        if (!notification.is_read) {
+            await markAsRead(notification.id);
+        }
+
+        navigate(
+            `/citizen/complaints/${notification.complaint.id}`
+        );
+    };
+
     const unreadCount = notifications.filter(
         (notification) => !notification.is_read
     ).length;
@@ -276,13 +293,25 @@ const NotificationPanel = () => {
                         const complaint =
                             notification.complaint;
 
+                        const department =
+                            notification.department;
+
                         return (
                             <div
                                 key={notification.id}
+                                onClick={() =>
+                                    handleNotificationClick(
+                                        notification
+                                    )
+                                }
                                 className={`rounded-xl border p-4 shadow-sm transition ${
                                     notification.is_read
                                         ? "border-slate-200 bg-white"
                                         : "border-blue-200 bg-blue-50"
+                                } ${
+                                    complaint?.id
+                                        ? "cursor-pointer hover:border-blue-400 hover:shadow-md"
+                                        : ""
                                 }`}
                             >
                                 <div className="flex gap-3">
@@ -301,7 +330,8 @@ const NotificationPanel = () => {
                                                         : "font-semibold text-slate-900"
                                                 }`}
                                             >
-                                                {notification.message}
+                                                {notification.title ||
+                                                    notification.message}
                                             </p>
 
                                             {!notification.is_read && (
@@ -310,6 +340,13 @@ const NotificationPanel = () => {
                                                 </span>
                                             )}
                                         </div>
+
+                                        {/* Message */}
+                                        {notification.title && (
+                                            <p className="mt-1 text-sm text-slate-600">
+                                                {notification.message}
+                                            </p>
+                                        )}
 
                                         {/* Complaint details */}
                                         {complaint && (
@@ -340,7 +377,7 @@ const NotificationPanel = () => {
                                                             Department:
                                                         </span>{" "}
                                                         <span className="text-slate-600">
-                                                            {complaint.department_name ||
+                                                            {department?.name ||
                                                                 "Not assigned"}
                                                         </span>
                                                     </div>
@@ -367,14 +404,22 @@ const NotificationPanel = () => {
                                             )}
                                         </p>
 
+                                        {/* Open complaint hint */}
+                                        {complaint?.id && (
+                                            <p className="mt-2 text-xs font-semibold text-blue-700">
+                                                Click to view complaint
+                                            </p>
+                                        )}
+
                                         {/* Mark as read */}
                                         {!notification.is_read && (
                                             <button
-                                                onClick={() =>
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
                                                     markAsRead(
                                                         notification.id
-                                                    )
-                                                }
+                                                    );
+                                                }}
                                                 className="mt-3 text-sm font-semibold text-blue-700 hover:underline"
                                             >
                                                 Mark as read

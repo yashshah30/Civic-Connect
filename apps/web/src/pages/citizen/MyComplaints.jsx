@@ -1,80 +1,210 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FiSearch, FiFilter, FiRotateCcw } from "react-icons/fi";
 
 import Navbar from "../../components/layout/navbar";
 import ComplaintCard from "../../components/citizen/ComplaintCard";
-import mockComplaints from "../../data/mockComplaints";
+
+const API_BASE_URL =
+    import.meta.env.VITE_API_URL ||
+    "https://civic-connect-backend-6i78.onrender.com";
 
 const ITEMS_PER_PAGE = 5;
 
+const formatStatus = (status) => {
+    if (!status) {
+        return "Unknown";
+    }
+
+    return status
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
+const formatPriority = (priority) => {
+    if (!priority) {
+        return "Unknown";
+    }
+
+    return (
+        priority.charAt(0).toUpperCase() +
+        priority.slice(1)
+    );
+};
+
 const MyComplaints = () => {
+    const [complaints, setComplaints] = useState([]);
+
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
+
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState("All");
     const [category, setCategory] = useState("All");
     const [priority, setPriority] = useState("All");
     const [date, setDate] = useState("All");
     const [sortOrder, setSortOrder] = useState("newest");
+
     const [currentPage, setCurrentPage] = useState(1);
 
+    useEffect(() => {
+        const fetchComplaints = async () => {
+            try {
+                setLoading(true);
+                setError("");
+
+                const token =
+                    localStorage.getItem("access_token");
+
+                if (!token) {
+                    throw new Error(
+                        "Please log in again."
+                    );
+                }
+
+                const response = await fetch(
+                    `${API_BASE_URL}/api/complaints/my`,
+                    {
+                        method: "GET",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok || !data.success) {
+                    throw new Error(
+                        data.message ||
+                            "Failed to load complaints."
+                    );
+                }
+
+                setComplaints(data.complaints || []);
+            } catch (error) {
+                console.error(
+                    "Fetch citizen complaints error:",
+                    error
+                );
+
+                setError(
+                    error.message ||
+                        "Failed to load complaints."
+                );
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchComplaints();
+    }, []);
+
     const filteredComplaints = useMemo(() => {
-        let result = mockComplaints.filter((complaint) => {
-            const searchText = search.toLowerCase().trim();
+        let result = complaints.filter(
+            (complaint) => {
+                const searchText =
+                    search.toLowerCase().trim();
 
-            // Search by ID, title OR category
-            const matchesSearch =
-                complaint.id.toLowerCase().includes(searchText) ||
-                complaint.title.toLowerCase().includes(searchText) ||
-                complaint.category.toLowerCase().includes(searchText);
+                const complaintId =
+                    String(complaint.id || "")
+                        .toLowerCase();
 
-            const matchesStatus =
-                status === "All" || complaint.status === status;
+                const complaintTitle =
+                    String(complaint.title || "")
+                        .toLowerCase();
 
-            const matchesCategory =
-                category === "All" || complaint.category === category;
+                const complaintCategory =
+                    String(complaint.category || "")
+                        .toLowerCase();
 
-            const matchesPriority =
-                priority === "All" || complaint.priority === priority;
+                const matchesSearch =
+                    complaintId.includes(searchText) ||
+                    complaintTitle.includes(searchText) ||
+                    complaintCategory.includes(searchText);
 
-            // Date filter
-            const complaintDate = new Date(complaint.date);
-            const today = new Date();
+                const matchesStatus =
+                    status === "All" ||
+                    formatStatus(complaint.status) ===
+                        status;
 
-            const differenceInDays =
-                (today - complaintDate) / (1000 * 60 * 60 * 24);
+                const matchesCategory =
+                    category === "All" ||
+                    complaint.category === category;
 
-            let matchesDate = true;
+                const formattedPriority =
+                    formatPriority(
+                        complaint.priority
+                    );
 
-            if (date === "7days") {
-                matchesDate = differenceInDays <= 7;
+                const matchesPriority =
+                    priority === "All" ||
+                    formattedPriority === priority;
+
+                const complaintDate = new Date(
+                    complaint.created_at
+                );
+
+                const today = new Date();
+
+                const differenceInDays =
+                    (today - complaintDate) /
+                    (1000 * 60 * 60 * 24);
+
+                let matchesDate = true;
+
+                if (date === "7days") {
+                    matchesDate =
+                        differenceInDays >= 0 &&
+                        differenceInDays <= 7;
+                }
+
+                if (date === "30days") {
+                    matchesDate =
+                        differenceInDays >= 0 &&
+                        differenceInDays <= 30;
+                }
+
+                if (date === "90days") {
+                    matchesDate =
+                        differenceInDays >= 0 &&
+                        differenceInDays <= 90;
+                }
+
+                return (
+                    matchesSearch &&
+                    matchesStatus &&
+                    matchesCategory &&
+                    matchesPriority &&
+                    matchesDate
+                );
             }
+        );
 
-            if (date === "30days") {
-                matchesDate = differenceInDays <= 30;
-            }
-
-            if (date === "90days") {
-                matchesDate = differenceInDays <= 90;
-            }
-
-            return (
-                matchesSearch &&
-                matchesStatus &&
-                matchesCategory &&
-                matchesPriority &&
-                matchesDate
-            );
-        });
-
-        // Sorting
         result.sort((a, b) => {
-            const dateA = new Date(a.date);
-            const dateB = new Date(b.date);
+            const dateA = new Date(
+                a.created_at
+            );
+
+            const dateB = new Date(
+                b.created_at
+            );
 
             const priorityOrder = {
                 High: 3,
                 Medium: 2,
                 Low: 1,
             };
+
+            const priorityA =
+                priorityOrder[
+                    formatPriority(a.priority)
+                ] || 0;
+
+            const priorityB =
+                priorityOrder[
+                    formatPriority(b.priority)
+                ] || 0;
 
             if (sortOrder === "newest") {
                 return dateB - dateA;
@@ -85,17 +215,11 @@ const MyComplaints = () => {
             }
 
             if (sortOrder === "highestPriority") {
-                return (
-                    priorityOrder[b.priority] -
-                    priorityOrder[a.priority]
-                );
+                return priorityB - priorityA;
             }
 
             if (sortOrder === "lowestPriority") {
-                return (
-                    priorityOrder[a.priority] -
-                    priorityOrder[b.priority]
-                );
+                return priorityA - priorityB;
             }
 
             return 0;
@@ -103,6 +227,7 @@ const MyComplaints = () => {
 
         return result;
     }, [
+        complaints,
         search,
         status,
         category,
@@ -112,23 +237,26 @@ const MyComplaints = () => {
     ]);
 
     const totalPages = Math.ceil(
-        filteredComplaints.length / ITEMS_PER_PAGE
+        filteredComplaints.length /
+            ITEMS_PER_PAGE
     );
 
-    const paginatedComplaints = filteredComplaints.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
+    const paginatedComplaints =
+        filteredComplaints.slice(
+            (currentPage - 1) * ITEMS_PER_PAGE,
+            currentPage * ITEMS_PER_PAGE
+        );
 
     const handleSearch = (event) => {
         setSearch(event.target.value);
         setCurrentPage(1);
     };
 
-    const handleFilterChange = (setter) => (event) => {
-        setter(event.target.value);
-        setCurrentPage(1);
-    };
+    const handleFilterChange =
+        (setter) => (event) => {
+            setter(event.target.value);
+            setCurrentPage(1);
+        };
 
     const resetFilters = () => {
         setSearch("");
@@ -192,6 +320,7 @@ const MyComplaints = () => {
                         </div>
 
                         <button
+                            type="button"
                             onClick={resetFilters}
                             className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                         >
@@ -205,7 +334,9 @@ const MyComplaints = () => {
                         {/* Status */}
                         <select
                             value={status}
-                            onChange={handleFilterChange(setStatus)}
+                            onChange={handleFilterChange(
+                                setStatus
+                            )}
                             className="rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-blue-800"
                         >
                             <option value="All">
@@ -240,7 +371,9 @@ const MyComplaints = () => {
                         {/* Category */}
                         <select
                             value={category}
-                            onChange={handleFilterChange(setCategory)}
+                            onChange={handleFilterChange(
+                                setCategory
+                            )}
                             className="rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-blue-800"
                         >
                             <option value="All">
@@ -271,7 +404,9 @@ const MyComplaints = () => {
                         {/* Priority */}
                         <select
                             value={priority}
-                            onChange={handleFilterChange(setPriority)}
+                            onChange={handleFilterChange(
+                                setPriority
+                            )}
                             className="rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-blue-800"
                         >
                             <option value="All">
@@ -294,7 +429,9 @@ const MyComplaints = () => {
                         {/* Date */}
                         <select
                             value={date}
-                            onChange={handleFilterChange(setDate)}
+                            onChange={handleFilterChange(
+                                setDate
+                            )}
                             className="rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-blue-800"
                         >
                             <option value="All">
@@ -317,7 +454,9 @@ const MyComplaints = () => {
                         {/* Sorting */}
                         <select
                             value={sortOrder}
-                            onChange={handleFilterChange(setSortOrder)}
+                            onChange={handleFilterChange(
+                                setSortOrder
+                            )}
                             className="rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-blue-800 sm:col-span-2 lg:col-span-2"
                         >
                             <option value="newest">
@@ -340,97 +479,167 @@ const MyComplaints = () => {
                     </div>
                 </div>
 
-                {/* Results count */}
-                <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm text-slate-600">
-                        Showing{" "}
-                        <span className="font-semibold text-slate-900">
-                            {paginatedComplaints.length}
-                        </span>{" "}
-                        of{" "}
-                        <span className="font-semibold text-slate-900">
-                            {filteredComplaints.length}
-                        </span>{" "}
-                        complaints
-                    </p>
-
-                    {filteredComplaints.length > 0 && (
-                        <p className="text-sm text-slate-500">
-                            Page {currentPage} of {totalPages}
-                        </p>
-                    )}
-                </div>
-
-                {/* Complaints */}
-                {paginatedComplaints.length > 0 ? (
-                    <div className="grid gap-5">
-                        {paginatedComplaints.map((complaint) => (
-                            <ComplaintCard
-                                key={complaint.id}
-                                complaint={complaint}
-                            />
-                        ))}
-                    </div>
-                ) : (
+                {/* Loading */}
+                {loading && (
                     <div className="rounded-2xl bg-white p-10 text-center shadow">
-                        <h3 className="text-lg font-semibold text-slate-900">
-                            No complaints found
-                        </h3>
-
-                        <p className="mt-2 text-sm text-slate-500">
-                            Try changing your search or filters.
+                        <p className="text-sm text-slate-500">
+                            Loading your complaints...
                         </p>
-
-                        <button
-                            onClick={resetFilters}
-                            className="mt-4 rounded-lg bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
-                        >
-                            Clear Filters
-                        </button>
                     </div>
                 )}
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+                {/* Error */}
+                {!loading && error && (
+                    <div className="rounded-2xl bg-red-50 p-10 text-center">
+                        <h3 className="text-lg font-semibold text-red-800">
+                            Unable to load complaints
+                        </h3>
 
-                        <button
-                            disabled={currentPage === 1}
-                            onClick={() =>
-                                setCurrentPage((page) => page - 1)
-                            }
-                            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                            Previous
-                        </button>
-
-                        {Array.from(
-                            { length: totalPages },
-                            (_, index) => index + 1
-                        ).map((page) => (
-                            <button
-                                key={page}
-                                onClick={() => setCurrentPage(page)}
-                                className={`rounded-lg px-4 py-2 text-sm font-semibold ${currentPage === page
-                                    ? "bg-blue-900 text-white"
-                                    : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
-                                    }`}
-                            >
-                                {page}
-                            </button>
-                        ))}
-
-                        <button
-                            disabled={currentPage === totalPages}
-                            onClick={() =>
-                                setCurrentPage((page) => page + 1)
-                            }
-                            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                            Next
-                        </button>
-
+                        <p className="mt-2 text-sm text-red-600">
+                            {error}
+                        </p>
                     </div>
+                )}
+
+                {/* Results */}
+                {!loading && !error && (
+                    <>
+                        {/* Results count */}
+                        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-sm text-slate-600">
+                                Showing{" "}
+                                <span className="font-semibold text-slate-900">
+                                    {
+                                        paginatedComplaints.length
+                                    }
+                                </span>{" "}
+                                of{" "}
+                                <span className="font-semibold text-slate-900">
+                                    {
+                                        filteredComplaints.length
+                                    }
+                                </span>{" "}
+                                complaints
+                            </p>
+
+                            {filteredComplaints.length >
+                                0 && (
+                                <p className="text-sm text-slate-500">
+                                    Page{" "}
+                                    {currentPage} of{" "}
+                                    {totalPages}
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Complaints */}
+                        {paginatedComplaints.length >
+                        0 ? (
+                            <div className="grid gap-5">
+                                {paginatedComplaints.map(
+                                    (complaint) => (
+                                        <ComplaintCard
+                                            key={
+                                                complaint.id
+                                            }
+                                            complaint={
+                                                complaint
+                                            }
+                                        />
+                                    )
+                                )}
+                            </div>
+                        ) : (
+                            <div className="rounded-2xl bg-white p-10 text-center shadow">
+                                <h3 className="text-lg font-semibold text-slate-900">
+                                    No complaints found
+                                </h3>
+
+                                <p className="mt-2 text-sm text-slate-500">
+                                    Try changing your search or filters.
+                                </p>
+
+                                <button
+                                    type="button"
+                                    onClick={
+                                        resetFilters
+                                    }
+                                    className="mt-4 rounded-lg bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+                                >
+                                    Clear Filters
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Pagination */}
+                        {totalPages > 1 && (
+                            <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+
+                                <button
+                                    type="button"
+                                    disabled={
+                                        currentPage ===
+                                        1
+                                    }
+                                    onClick={() =>
+                                        setCurrentPage(
+                                            (page) =>
+                                                page - 1
+                                        )
+                                    }
+                                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    Previous
+                                </button>
+
+                                {Array.from(
+                                    {
+                                        length: totalPages,
+                                    },
+                                    (_, index) =>
+                                        index + 1
+                                ).map(
+                                    (page) => (
+                                        <button
+                                            type="button"
+                                            key={page}
+                                            onClick={() =>
+                                                setCurrentPage(
+                                                    page
+                                                )
+                                            }
+                                            className={`rounded-lg px-4 py-2 text-sm font-semibold ${
+                                                currentPage ===
+                                                page
+                                                    ? "bg-blue-900 text-white"
+                                                    : "border border-slate-300 bg-white text-slate-700 hover:bg-slate-50"
+                                            }`}
+                                        >
+                                            {page}
+                                        </button>
+                                    )
+                                )}
+
+                                <button
+                                    type="button"
+                                    disabled={
+                                        currentPage ===
+                                        totalPages
+                                    }
+                                    onClick={() =>
+                                        setCurrentPage(
+                                            (page) =>
+                                                page + 1
+                                        )
+                                    }
+                                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
+                                >
+                                    Next
+                                </button>
+
+                            </div>
+                        )}
+                    </>
                 )}
 
             </main>
