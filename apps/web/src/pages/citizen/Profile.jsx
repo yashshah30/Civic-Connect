@@ -1,6 +1,29 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "../../components/layout/navbar";
-import { supabase } from "../../lib/supabase";
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const fallbackProfile = {
+  name: "John Doe",
+  email: "john.doe@example.com",
+  mobile: "+91 9876543210",
+  address: "123 Civic Street, City Center",
+  avatarUrl: "",
+  role: "Citizen",
+  createdAt: "2026-01-15",
+};
+
+const apiRequest = async (path, options = {}) => {
+  const response = await fetch(`${apiUrl}${path}`, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("access_token") || ""}`,
+      ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+      ...options.headers,
+    },
+  });
+  const data = await response.json();
+  if (!response.ok || !data.success) throw new Error(data.message || "Request failed");
+  return data;
+};
 
 export default function Profile() {
   const [profile, setProfile] = useState({
@@ -8,6 +31,7 @@ export default function Profile() {
     email: "",
     mobile: "",
     address: "",
+    avatarUrl: "",
     role: "Citizen",
     createdAt: "",
   });
@@ -18,71 +42,68 @@ export default function Profile() {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
-  useEffect(() => {
-    fetchUserProfile();
-  }, []);
-
   const fetchUserProfile = async () => {
     try {
       setLoading(true);
 
-      if (!supabase) {
-        const dummyData = {
-          name: "John Doe",
-          email: "john.doe@example.com",
-          mobile: "+91 9876543210",
-          address: "123 Civic Street, City Center",
-          role: "Citizen",
-          createdAt: "2026-01-15",
-        };
-        setProfile(dummyData);
-        setFormData(dummyData);
-        return;
-      }
-      
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        const dummyData = {
-          name: "John Doe",
-          email: "john.doe@example.com",
-          mobile: "+91 9876543210",
-          address: "123 Civic Street, City Center",
-          role: "Citizen",
-          createdAt: "2026-01-15",
-        };
-        setProfile(dummyData);
-        setFormData(dummyData);
+      if (!localStorage.getItem("access_token")) {
+        setProfile(fallbackProfile);
+        setFormData(fallbackProfile);
         return;
       }
 
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
+      const { profile: data } = await apiRequest("/api/profile");
 
       const userProfile = {
-        name: data?.full_name || user.user_metadata?.full_name || "Citizen User",
-        email: user.email || "",
+        name: data?.full_name || "Citizen User",
+        email: data?.email || "",
         mobile: data?.phone || data?.mobile || "",
         address: data?.address || "",
+        avatarUrl: data?.avatar_url || "",
         role: "Citizen",
-        createdAt: user.created_at ? new Date(user.created_at).toLocaleDateString() : "N/A",
+        createdAt: data?.created_at ? new Date(data.created_at).toLocaleDateString() : "N/A",
       };
 
       setProfile(userProfile);
       setFormData(userProfile);
     } catch (err) {
+      console.error("Profile Fetch Error:", err);
       setMessage({ type: "error", text: "Failed to load profile details." });
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    const timeoutId = setTimeout(fetchUserProfile, 0);
+    return () => clearTimeout(timeoutId);
+  }, []);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageUpload = async (e) => {
+    try {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      setSaving(true);
+      setMessage({ type: "", text: "" });
+
+      const body = new FormData();
+      body.append("avatar", file);
+      const { avatarUrl: publicUrl } = await apiRequest("/api/profile/avatar", { method: "POST", body });
+
+      setProfile((prev) => ({ ...prev, avatarUrl: publicUrl }));
+      setFormData((prev) => ({ ...prev, avatarUrl: publicUrl }));
+      setMessage({ type: "success", text: "Profile picture updated successfully!" });
+    } catch (err) {
+      setMessage({ type: "error", text: err.message || "Failed to upload image" });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleSave = async (e) => {
@@ -91,23 +112,21 @@ export default function Profile() {
     setMessage({ type: "", text: "" });
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (user) {
-        const { error } = await supabase
-          .from("profiles")
-          .upsert({
-            id: user.id,
-            full_name: formData.name,
-            phone: formData.mobile,
-            address: formData.address,
-            updated_at: new Date().toISOString(),
-          });
-
-        if (error) throw error;
+      if (localStorage.getItem("access_token")) {
+        const { profile: updatedProfile } = await apiRequest("/api/profile", {
+          method: "PATCH",
+          body: JSON.stringify(formData),
+        });
+        setProfile((current) => ({
+          ...current,
+          name: updatedProfile.full_name,
+          mobile: updatedProfile.phone || updatedProfile.mobile || "",
+          address: updatedProfile.address || "",
+          avatarUrl: updatedProfile.avatar_url || current.avatarUrl,
+        }));
       }
 
-      setProfile({ ...formData });
+      if (!localStorage.getItem("access_token")) setProfile({ ...formData });
       setIsEditing(false);
       setMessage({ type: "success", text: "Profile updated successfully!" });
     } catch (err) {
@@ -165,9 +184,34 @@ export default function Profile() {
 
         <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 border border-gray-200 dark:border-gray-700">
           <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 pb-6 border-b border-gray-200 dark:border-gray-700">
-            <div className="w-24 h-24 rounded-full bg-blue-600 text-white flex items-center justify-center text-3xl font-bold uppercase shadow-md">
-              {profile.name ? profile.name.charAt(0) : "C"}
+            <div className="relative group w-24 h-24">
+              {profile.avatarUrl ? (
+                <img
+                  src={profile.avatarUrl}
+                  alt="Profile Avatar"
+                  className="w-24 h-24 rounded-full object-cover shadow-md border-2 border-blue-600"
+                />
+              ) : (
+                <div className="w-24 h-24 rounded-full bg-blue-600 text-white flex items-center justify-center text-3xl font-bold uppercase shadow-md">
+                  {profile.name ? profile.name.charAt(0) : "C"}
+                </div>
+              )}
+
+              <label className="absolute bottom-0 right-0 bg-gray-900 text-white p-2 rounded-full cursor-pointer hover:bg-black transition shadow-md">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                  disabled={saving}
+                />
+              </label>
             </div>
+
             <div className="text-center sm:text-left">
               <h2 className="text-xl font-semibold">{profile.name}</h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">{profile.email}</p>

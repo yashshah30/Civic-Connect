@@ -98,11 +98,6 @@ function AppRoutes() {
           element={<ComplaintDetails />}
         />
 
-        <Route
-          path="/citizen/notifications"
-          element={<Notifications />}
-        />
-
 <Route
   path="/citizen/activity"
   element={<CitizenAnalytics />}
@@ -148,8 +143,9 @@ function AppRoutes() {
           element={<AuthorityComplaintDetails />}
         />
         
-        <Route path="/citizen/profile"
-         element={<CitizenProfile />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/citizen/profile" element={<CitizenProfile />} />
+        </Route>
 
         {/* 404 */}
         <Route
