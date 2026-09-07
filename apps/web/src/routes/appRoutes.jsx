@@ -6,10 +6,8 @@ import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import OTPVerification from "../pages/auth/OTPVerification";
-
 import ResetPassword from "../pages/auth/ResetPassword";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
-
 
 // Citizen
 import Dashboard from "../pages/citizen/dashboard";
@@ -21,11 +19,11 @@ import ComplaintHistory from "../pages/citizen/ComplaintHistory";
 import CitizenAnalytics from "../pages/citizen/CitizenAnalytics";
 import CitizenLayout from "../components/citizen/CitizenLayout";
 
-
 // Authority
 import AuthorityDashboard from "../pages/authority/AuthorityDashboard";
 import AuthorityComplaints from "../pages/authority/AuthorityComplaints";
 import AuthorityComplaintDetails from "../pages/authority/AuthorityComplaintDetails";
+import CivicMap from "../pages/authority/CivicMap";
 
 // 404
 import NotFound from "../pages/notfound/notfound";
@@ -37,9 +35,9 @@ function AppRoutes() {
 
         {/* Default */}
         <Route
-  path="/"
-  element={<Navigate to="/landing" replace />}
-/>
+          path="/"
+          element={<Navigate to="/landing" replace />}
+        />
 
         {/* Landing */}
         <Route
@@ -74,7 +72,6 @@ function AppRoutes() {
         />
 
         {/* Citizen */}
-
         <Route
           path="/citizen/dashboard"
           element={<Dashboard />}
@@ -100,35 +97,45 @@ function AppRoutes() {
           element={<Notifications />}
         />
 
-<Route
-  path="/citizen/activity"
-  element={<CitizenAnalytics />}
-/>
+        <Route
+          path="/citizen/activity"
+          element={<CitizenAnalytics />}
+        />
 
-<Route
-  path="/citizen/history"
-  element={<ComplaintHistory />}
-/>
+        <Route
+          path="/citizen/history"
+          element={<ComplaintHistory />}
+        />
 
         <Route element={<ProtectedRoute />}>
-         <Route element={<CitizenLayout />}>
-           <Route path="/citizen/dashboard" element={<Dashboard />} />
+          <Route element={<CitizenLayout />}>
+            <Route
+              path="/citizen/dashboard"
+              element={<Dashboard />}
+            />
 
-           <Route path="/citizen/report" element={<ReportComplaint />} />
+            <Route
+              path="/citizen/report"
+              element={<ReportComplaint />}
+            />
 
-           <Route path="/citizen/complaints" element={<MyComplaints />} />
+            <Route
+              path="/citizen/complaints"
+              element={<MyComplaints />}
+            />
 
-           <Route
+            <Route
               path="/citizen/complaints/:id"
               element={<ComplaintDetails />}
-           />
+            />
 
-           <Route
+            <Route
               path="/citizen/notifications"
-             element={<Notifications />}
-           />
-         </Route>
+              element={<Notifications />}
+            />
+          </Route>
         </Route>
+
         {/* Authority */}
         <Route
           path="/authority/dashboard"
@@ -143,6 +150,11 @@ function AppRoutes() {
         <Route
           path="/authority/complaints/:id"
           element={<AuthorityComplaintDetails />}
+        />
+
+        <Route
+          path="/authority/map"
+          element={<CivicMap />}
         />
 
         {/* 404 */}
