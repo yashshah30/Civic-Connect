@@ -15,6 +15,9 @@ import MyComplaints from "../pages/citizen/MyComplaints";
 import ComplaintDetails from "../pages/citizen/ComplaintDetails";
 import Notifications from "../pages/citizen/Notifications";
 import CitizenLayout from "../components/citizen/CitizenLayout";
+import TrackComplaint from "../pages/citizen/TrackComplaint";
+import Activity from "../pages/citizen/Activity";
+import NotificationPreferences from "../pages/citizen/NotificationPreferences";
 
 // Authority
 import AuthorityDashboard from "../pages/authority/AuthorityDashboard";
@@ -75,8 +78,24 @@ function AppRoutes() {
 
            <Route
               path="/citizen/notifications"
-             element={<Notifications />}
+              element={<Notifications />}
            />
+
+           <Route 
+              path="/citizen/track" 
+              element={<TrackComplaint />} 
+           />
+
+           <Route 
+              path="/citizen/activity" 
+              element={<Activity />} 
+           />
+           
+           <Route
+              path="/citizen/preferences"
+              element={<NotificationPreferences />}
+           />
+           
          </Route>
         </Route>
         {/* Authority */}

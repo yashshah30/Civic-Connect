@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+
 import AuthLayout from "../../components/auth/AuthLayout";
 import Input from "../../components/ui/input";
 import Button from "../../components/ui/button";
@@ -20,18 +21,18 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       [e.target.name]: e.target.value,
-    });
+    }));
   };
 
   const handleSignup = async () => {
     setMessage("");
 
     if (
-      !formData.name ||
-      !formData.email ||
+      !formData.name.trim() ||
+      !formData.email.trim() ||
       !formData.password
     ) {
       setMessage("Name, email and password are required.");
@@ -47,7 +48,7 @@ export default function Signup() {
       setLoading(true);
 
       const response = await fetch(
-        "http://localhost:5000/api/auth/signup",
+        `${import.meta.env.VITE_API_URL}/api/auth/signup`,
         {
           method: "POST",
           headers: {
@@ -65,7 +66,7 @@ export default function Signup() {
 
       const data = await response.json();
 
-      if (!response.ok) {
+      if (!response.ok || !data.success) {
         setMessage(data.message || "Signup failed.");
         return;
       }
@@ -89,7 +90,6 @@ export default function Signup() {
       subtitle="Register to access Civic Connect"
     >
       <div className="space-y-5">
-
         <Input
           label="Full Name"
           name="name"
@@ -100,6 +100,7 @@ export default function Signup() {
 
         <Input
           label="Mobile Number"
+          type="tel"
           name="mobile"
           value={formData.mobile}
           onChange={handleChange}
@@ -159,12 +160,11 @@ export default function Signup() {
           Already have an account?{" "}
           <Link
             to="/login"
-            className="text-blue-900 font-semibold hover:underline"
+            className="font-semibold text-blue-900 hover:underline"
           >
             Login
           </Link>
         </p>
-
       </div>
     </AuthLayout>
   );
