@@ -12,6 +12,10 @@ const categories = [
     "Other",
 ];
 
+const API_BASE_URL =
+    import.meta.env.VITE_API_URL ||
+    "https://civic-connect-backend-6i78.onrender.com";
+
 const ReportComplaint = () => {
     const [form, setForm] = useState({
         title: "",
@@ -25,6 +29,8 @@ const ReportComplaint = () => {
     const [images, setImages] = useState([]);
     const [errors, setErrors] = useState({});
     const [success, setSuccess] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("");
 
     const handleChange = (event) => {
         const { name, value } = event.target;
@@ -37,9 +43,11 @@ const ReportComplaint = () => {
         setErrors((previous) => ({
             ...previous,
             [name]: "",
+            submit: "",
         }));
 
         setSuccess(false);
+        setSuccessMessage("");
     };
 
     const handleImageChange = (event) => {
@@ -60,6 +68,12 @@ const ReportComplaint = () => {
     };
 
     const removeImage = (index) => {
+        const imageToRemove = images[index];
+
+        if (imageToRemove?.preview) {
+            URL.revokeObjectURL(imageToRemove.preview);
+        }
+
         setImages((previous) =>
             previous.filter((_, imageIndex) => imageIndex !== index)
         );
@@ -113,7 +127,7 @@ const ReportComplaint = () => {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
 
         if (!validateForm()) {
@@ -121,30 +135,86 @@ const ReportComplaint = () => {
             return;
         }
 
-        // Mock submission only.
-        console.log("Mock complaint submitted:", {
-            ...form,
-            images,
-        });
+        try {
+            setLoading(true);
+            setSuccess(false);
+            setSuccessMessage("");
 
-        setSuccess(true);
+            setErrors((previous) => ({
+                ...previous,
+                submit: "",
+            }));
 
-        // Reset form after mock submission.
-        setForm({
-            title: "",
-            description: "",
-            category: "",
-            location: "",
-            latitude: "",
-            longitude: "",
-        });
+            const token = localStorage.getItem("access_token");
 
-        images.forEach((image) => {
-            URL.revokeObjectURL(image.preview);
-        });
+            if (!token) {
+                throw new Error("Please log in again.");
+            }
 
-        setImages([]);
-        setErrors({});
+            const response = await fetch(
+                `${API_BASE_URL}/api/complaints`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
+                    body: JSON.stringify({
+                        title: form.title.trim(),
+                        description: form.description.trim(),
+                        category: form.category.toLowerCase(),
+                        priority: "medium",
+                        latitude: Number(form.latitude),
+                        longitude: Number(form.longitude),
+                        address: form.location.trim(),
+                    }),
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data.message || "Failed to submit complaint"
+                );
+            }
+
+            setSuccess(true);
+
+            setSuccessMessage(
+                data.complaint?.id
+                    ? `Complaint ID: ${data.complaint.id}`
+                    : "Your complaint has been saved successfully."
+            );
+
+            setForm({
+                title: "",
+                description: "",
+                category: "",
+                location: "",
+                latitude: "",
+                longitude: "",
+            });
+
+            images.forEach((image) => {
+                URL.revokeObjectURL(image.preview);
+            });
+
+            setImages([]);
+            setErrors({});
+        } catch (error) {
+            console.error("Submit complaint error:", error);
+
+            setSuccess(false);
+
+            setErrors({
+                submit:
+                    error.message ||
+                    "Failed to submit complaint. Please try again.",
+            });
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -171,7 +241,10 @@ const ReportComplaint = () => {
                 {/* Success message */}
                 {success && (
                     <div className="mb-6 flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-green-800">
-                        <FiCheckCircle className="mt-0.5 shrink-0" size={20} />
+                        <FiCheckCircle
+                            className="mt-0.5 shrink-0"
+                            size={20}
+                        />
 
                         <div>
                             <p className="font-semibold">
@@ -179,10 +252,28 @@ const ReportComplaint = () => {
                             </p>
 
                             <p className="mt-1 text-sm">
-                                This is a mock submission. It has not been sent to the
-                                backend yet.
+                                Your complaint has been sent to the backend.
                             </p>
+
+                            {successMessage && (
+                                <p className="mt-1 text-sm font-medium">
+                                    {successMessage}
+                                </p>
+                            )}
                         </div>
+                    </div>
+                )}
+
+                {/* Submission error */}
+                {errors.submit && (
+                    <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">
+                        <p className="font-semibold">
+                            Complaint submission failed
+                        </p>
+
+                        <p className="mt-1 text-sm">
+                            {errors.submit}
+                        </p>
                     </div>
                 )}
 
@@ -201,10 +292,11 @@ const ReportComplaint = () => {
                                 value={form.title}
                                 onChange={handleChange}
                                 placeholder="Example: Road pothole near college"
-                                className={`w-full rounded-xl border p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${errors.title
-                                    ? "border-red-400"
-                                    : "border-slate-300"
-                                    }`}
+                                className={`w-full rounded-xl border p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${
+                                    errors.title
+                                        ? "border-red-400"
+                                        : "border-slate-300"
+                                }`}
                             />
 
                             {errors.title && (
@@ -222,10 +314,11 @@ const ReportComplaint = () => {
                                 </label>
 
                                 <span
-                                    className={`text-sm ${form.description.length > 500
-                                        ? "text-red-600"
-                                        : "text-slate-500"
-                                        }`}
+                                    className={`text-sm ${
+                                        form.description.length > 500
+                                            ? "text-red-600"
+                                            : "text-slate-500"
+                                    }`}
                                 >
                                     {form.description.length} / 500
                                 </span>
@@ -241,10 +334,11 @@ const ReportComplaint = () => {
                                 }}
                                 rows={5}
                                 placeholder="Describe the problem..."
-                                className={`w-full resize-none rounded-xl border p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${errors.description
-                                    ? "border-red-400"
-                                    : "border-slate-300"
-                                    }`}
+                                className={`w-full resize-none rounded-xl border p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${
+                                    errors.description
+                                        ? "border-red-400"
+                                        : "border-slate-300"
+                                }`}
                             />
 
                             {errors.description && (
@@ -264,10 +358,11 @@ const ReportComplaint = () => {
                                 name="category"
                                 value={form.category}
                                 onChange={handleChange}
-                                className={`w-full rounded-xl border bg-white p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${errors.category
-                                    ? "border-red-400"
-                                    : "border-slate-300"
-                                    }`}
+                                className={`w-full rounded-xl border bg-white p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${
+                                    errors.category
+                                        ? "border-red-400"
+                                        : "border-slate-300"
+                                }`}
                             >
                                 <option value="">
                                     Select category
@@ -310,10 +405,11 @@ const ReportComplaint = () => {
                                 value={form.location}
                                 onChange={handleChange}
                                 placeholder="Enter location / address"
-                                className={`w-full rounded-xl border p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${errors.location
-                                    ? "border-red-400"
-                                    : "border-slate-300"
-                                    }`}
+                                className={`w-full rounded-xl border p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 ${
+                                    errors.location
+                                        ? "border-red-400"
+                                        : "border-slate-300"
+                                }`}
                             />
 
                             {errors.location && (
@@ -414,7 +510,9 @@ const ReportComplaint = () => {
 
                                             <button
                                                 type="button"
-                                                onClick={() => removeImage(index)}
+                                                onClick={() =>
+                                                    removeImage(index)
+                                                }
                                                 className="absolute right-2 top-2 rounded-full bg-red-600 p-1.5 text-white shadow hover:bg-red-700"
                                                 aria-label="Remove image"
                                             >
@@ -429,9 +527,12 @@ const ReportComplaint = () => {
                         {/* Submit */}
                         <button
                             type="submit"
-                            className="w-full rounded-xl bg-blue-900 px-5 py-3 font-semibold text-white transition hover:bg-blue-800"
+                            disabled={loading}
+                            className="w-full rounded-xl bg-blue-900 px-5 py-3 font-semibold text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            Submit Complaint
+                            {loading
+                                ? "Submitting Complaint..."
+                                : "Submit Complaint"}
                         </button>
 
                     </form>
