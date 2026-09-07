@@ -1,11 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
 import { supabase } from "../config/supabase.js";
 
 export const authMiddleware = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
 
-    // Check if Authorization header exists
+    // 1. Check if Authorization header exists
     if (!authHeader) {
       return res.status(401).json({
         success: false,
@@ -13,7 +12,7 @@ export const authMiddleware = async (req, res, next) => {
       });
     }
 
-    // Check Bearer format
+    // 2. Check Bearer format
     if (!authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
         success: false,
@@ -21,7 +20,7 @@ export const authMiddleware = async (req, res, next) => {
       });
     }
 
-    // Extract token
+    // 3. Extract token
     const token = authHeader.substring(7);
 
     if (!token) {
@@ -31,7 +30,7 @@ export const authMiddleware = async (req, res, next) => {
       });
     }
 
-    // Validate token with Supabase
+    // 4. Validate token with Supabase Auth
     const {
       data: { user },
       error,
@@ -44,40 +43,29 @@ export const authMiddleware = async (req, res, next) => {
       });
     }
 
-    // Attach authenticated user to request
-   const authenticatedSupabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_KEY,
-  {
-    global: {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    }
-  }
-);
+    // 5. Fetch profile safely using '*' to avoid missing-column errors
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle(); // maybeSingle() avoids throwing exception on empty match
 
-const { data: profile, error: profileError } = await authenticatedSupabase
-  .from("profiles")
-  .select("id, name, email, mobile, address, role")
-  .eq("id", user.id)
-  .single();
+    // If profile is missing, fallback gracefully instead of breaking auth
+    const userRole = profile?.role || "citizen";
 
-if (profileError || !profile) {
-  return res.status(403).json({
-    success: false,
-    message: "User profile not found"
-  });
-}
+    req.user = {
+      ...user,
+      role: userRole,
+      profile: profile || {
+        id: user.id,
+        email: user.email,
+        full_name: user.user_metadata?.full_name || "User",
+        role: "citizen",
+      },
+      accessToken: token,
+    };
 
-req.user = {
-  ...user,
-  role: profile.role,
-  profile,
-  accessToken: token
-};
-
-next();
+    next();
   } catch (error) {
     console.error("Authentication middleware error:", error);
 
