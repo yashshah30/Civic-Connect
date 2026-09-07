@@ -1,18 +1,44 @@
-import { useState } from "react";
-import mockNotifications from "../../data/mockNotifications";
+import { useEffect, useState } from "react";
 
 const NotificationPanel = () => {
-    const [notifications, setNotifications] = useState(mockNotifications);
+    const [notifications, setNotifications] = useState([]);
+
+    useEffect(() => {
+        const fetchNotifications = async () => {
+            try {
+                const token = localStorage.getItem("access_token");
+
+                const response = await fetch(
+                    `${import.meta.env.VITE_API_URL}/api/notifications`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    }
+                );
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    setNotifications(data.notifications || []);
+                }
+            } catch (error) {
+                console.error("Failed to load notifications:", error);
+            }
+        };
+
+        fetchNotifications();
+    }, []);
 
     const unreadCount = notifications.filter(
-        (notification) => !notification.read
+        (notification) => !notification.is_read
     ).length;
 
     const markAsRead = (id) => {
         setNotifications((current) =>
             current.map((notification) =>
                 notification.id === id
-                    ? { ...notification, read: true }
+                    ? { ...notification, is_read: true }
                     : notification
             )
         );
@@ -22,7 +48,7 @@ const NotificationPanel = () => {
         setNotifications((current) =>
             current.map((notification) => ({
                 ...notification,
-                read: true,
+                is_read: true,
             }))
         );
     };
@@ -81,10 +107,11 @@ const NotificationPanel = () => {
                 {notifications.map((notification) => (
                     <div
                         key={notification.id}
-                        className={`rounded-xl border p-4 shadow-sm transition ${notification.read
+                        className={`rounded-xl border p-4 shadow-sm transition ${
+                            notification.is_read
                                 ? "border-slate-200 bg-white"
                                 : "border-blue-200 bg-blue-50"
-                            }`}
+                        }`}
                     >
                         <div className="flex gap-3">
                             {/* Icon */}
@@ -96,15 +123,16 @@ const NotificationPanel = () => {
                             <div className="min-w-0 flex-1">
                                 <div className="flex flex-col justify-between gap-2 sm:flex-row">
                                     <p
-                                        className={`text-sm ${notification.read
+                                        className={`text-sm ${
+                                            notification.is_read
                                                 ? "text-slate-700"
                                                 : "font-semibold text-slate-900"
-                                            }`}
+                                        }`}
                                     >
                                         {notification.message}
                                     </p>
 
-                                    {!notification.read && (
+                                    {!notification.is_read && (
                                         <span className="w-fit rounded-full bg-blue-600 px-2 py-1 text-xs font-semibold text-white">
                                             New
                                         </span>
@@ -112,10 +140,12 @@ const NotificationPanel = () => {
                                 </div>
 
                                 <p className="mt-2 text-xs text-slate-500">
-                                    {notification.createdAt}
+                                    {new Date(
+                                        notification.created_at
+                                    ).toLocaleString()}
                                 </p>
 
-                                {!notification.read && (
+                                {!notification.is_read && (
                                     <button
                                         onClick={() =>
                                             markAsRead(notification.id)

@@ -12,6 +12,7 @@ export default function Dashboard() {
     const [userName, setUserName] = useState("Citizen");
 
     const [complaints, setComplaints] = useState([]);
+    const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
@@ -47,16 +48,22 @@ useEffect(() => {
 
             // Fetch logged-in citizen's complaints
             const response = await fetch(
-                `${import.meta.env.VITE_API_URL}/api/complaints/my`,
-                {
-                    method: "GET",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+    `${import.meta.env.VITE_API_URL}/api/complaints/my`,
+    {
+        method: "GET",
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    }
+);
 
-            const data = await response.json();
+if (response.status === 401 || response.status === 403) {
+    localStorage.removeItem("access_token");
+    navigate("/login", { replace: true });
+    return;
+}
+
+const data = await response.json();
 
             if (!response.ok || !data.success) {
                 throw new Error(
@@ -65,6 +72,22 @@ useEffect(() => {
             }
 
             setComplaints(data.complaints || []);
+
+            // Fetch notifications
+const notificationResponse = await fetch(
+    `${import.meta.env.VITE_API_URL}/api/notifications`,
+    {
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    }
+);
+
+const notificationData = await notificationResponse.json();
+
+if (notificationResponse.ok && notificationData.success) {
+    setNotifications(notificationData.notifications || []);
+}
         } catch (error) {
             console.error("Dashboard error:", error);
             setError(error.message || "Failed to load dashboard.");
@@ -77,23 +100,28 @@ useEffect(() => {
 }, [navigate]);
 
     // Calculate statistics from real complaints
+    const normalizeStatus = (status = "") =>
+        String(status)
+            .toLowerCase()
+            .replace(/_/g, " ")
+            .trim();
+
     const total = complaints.length;
 
-    const submitted = complaints.filter(
-        (complaint) =>
-            complaint.status?.toLowerCase() === "submitted" ||
-            complaint.status?.toLowerCase() === "under review" ||
-            complaint.status?.toLowerCase() === "assigned"
+    const submitted = complaints.filter((complaint) =>
+        ["submitted", "under review", "assigned"].includes(
+            normalizeStatus(complaint.status)
+        )
     ).length;
 
     const inProgress = complaints.filter(
         (complaint) =>
-            complaint.status?.toLowerCase() === "in progress"
+            normalizeStatus(complaint.status) === "in progress"
     ).length;
 
     const resolved = complaints.filter(
         (complaint) =>
-            complaint.status?.toLowerCase() === "resolved"
+            normalizeStatus(complaint.status) === "resolved"
     ).length;
 
     const stats = {
@@ -104,8 +132,9 @@ useEffect(() => {
     };
 
     // Notification count
-    // Will be connected to the notifications module later.
-    const unreadNotifications = 0;
+const unreadNotifications = notifications.filter(
+    (notification) => notification.is_read === false
+).length;
 
     // Latest 3 complaints
     const recentComplaints = [...complaints]
