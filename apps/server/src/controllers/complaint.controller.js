@@ -264,3 +264,184 @@ export const getComplaintById = async (req, res) => {
   }
 };
 
+// Get complaint statistics for the logged-in citizen
+export const getComplaintStats = async (req, res) => {
+  try {
+    const authenticatedSupabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_KEY,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${req.user.accessToken}`,
+          },
+        },
+      }
+    );
+
+    const { data: complaints, error } = await authenticatedSupabase
+      .from("complaints")
+      .select("status")
+      .eq("user_id", req.user.id);
+
+    if (error) {
+      console.error("Get complaint stats error:", error);
+
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    const allComplaints = complaints || [];
+
+    const stats = {
+      total: allComplaints.length,
+      pending: allComplaints.filter(
+        (complaint) =>
+          complaint.status?.toLowerCase() === "pending" ||
+          complaint.status?.toLowerCase() === "submitted"
+      ).length,
+      inProgress: allComplaints.filter(
+        (complaint) =>
+          complaint.status?.toLowerCase() === "in_progress" ||
+          complaint.status?.toLowerCase() === "in progress"
+      ).length,
+      resolved: allComplaints.filter(
+        (complaint) =>
+          complaint.status?.toLowerCase() === "resolved"
+      ).length,
+    };
+
+    return res.json({
+      success: true,
+      stats,
+    });
+  } catch (error) {
+    console.error("Get complaint stats error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+// Update complaint status by authority
+export const updateComplaintStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, comment } = req.body;
+
+    const allowedStatuses = [
+      "submitted",
+      "under_review",
+      "assigned",
+      "in_progress",
+      "resolved",
+    ];
+
+    if (!status || !allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint status",
+      });
+    }
+
+    const authenticatedSupabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_KEY,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${req.user.accessToken}`,
+          },
+        },
+      }
+    );
+
+    // Get complaint first
+    const { data: complaint, error: complaintError } =
+      await authenticatedSupabase
+        .from("complaints")
+        .select("id, user_id, status, title")
+        .eq("id", id)
+        .single();
+
+    if (complaintError || !complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found",
+      });
+    }
+
+    const oldStatus = complaint.status;
+
+    // Update complaint status
+    const { data: updatedComplaint, error: updateError } =
+      await authenticatedSupabase
+        .from("complaints")
+        .update({
+          status,
+        })
+        .eq("id", id)
+        .select()
+        .single();
+
+    if (updateError) {
+      console.error("Update complaint status error:", updateError);
+
+      return res.status(400).json({
+        success: false,
+        message: updateError.message,
+      });
+    }
+
+    // Add status history
+    const { error: historyError } = await authenticatedSupabase
+      .from("complaint_status_history")
+      .insert({
+        complaint_id: id,
+        old_status: oldStatus,
+        new_status: status,
+        changed_by: req.user.id,
+        comment: comment || null,
+      });
+
+    if (historyError) {
+      console.error("Status history error:", historyError);
+    }
+
+    // Create notification for citizen
+    const { error: notificationError } = await authenticatedSupabase
+      .from("notifications")
+      .insert({
+        user_id: complaint.user_id,
+        complaint_id: id,
+        title: "Complaint Status Updated",
+        message: `Your complaint "${complaint.title}" status changed to ${status.replace(
+          "_",
+          " "
+        )}.`,
+        type: "status_update",
+        is_read: false,
+      });
+
+    if (notificationError) {
+      console.error("Notification error:", notificationError);
+    }
+
+    return res.json({
+      success: true,
+      message: "Complaint status updated successfully",
+      complaint: updatedComplaint,
+    });
+  } catch (error) {
+    console.error("Update complaint status error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};

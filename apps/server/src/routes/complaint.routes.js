@@ -5,6 +5,8 @@ import {
   createComplaint,
   getMyComplaints,
   getComplaintById,
+  getComplaintStats,
+  updateComplaintStatus,
 } from "../controllers/complaint.controller.js";
 
 import { authMiddleware } from "../middleware/auth.middleware.js";
@@ -52,6 +54,20 @@ router.get(
   authMiddleware,
   requireRole("citizen"),
   getMyComplaints
+);
+
+router.get(
+  "/stats",
+  authMiddleware,
+  requireRole("citizen"),
+  getComplaintStats
+);
+
+router.patch(
+  "/:id/status",
+  authMiddleware,
+  requireRole("authority"),
+  updateComplaintStatus
 );
 
 router.get(

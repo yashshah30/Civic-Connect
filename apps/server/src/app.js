@@ -3,6 +3,7 @@ import cors from "cors";
 import { supabase } from "./config/supabase.js";
 import authRoutes from "./routes/auth.routes.js";
 import complaintRoutes from "./routes/complaint.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
 
 const app = express();
 
@@ -43,5 +44,6 @@ app.get("/api/health", async (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/complaints", complaintRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 export default app;
