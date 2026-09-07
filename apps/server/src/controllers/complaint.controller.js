@@ -445,3 +445,48 @@ export const updateComplaintStatus = async (req, res) => {
     });
   }
 };
+
+export const getAuthorityComplaints = async (req, res) => {
+  try {
+    const authenticatedSupabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_KEY,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${req.user.accessToken}`,
+          },
+        },
+      }
+    );
+
+    const { data: complaints, error } = await authenticatedSupabase
+      .from("complaints")
+      .select(`
+        *,
+        complaint_media (*)
+      `)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Get authority complaints error:", error);
+
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    return res.json({
+      success: true,
+      complaints: complaints || [],
+    });
+  } catch (error) {
+    console.error("Get authority complaints error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
