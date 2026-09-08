@@ -30,6 +30,7 @@ const ReportComplaint = () => {
     const [errors, setErrors] = useState({});
     const [success, setSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [locationLoading, setLocationLoading] = useState(false);
     const [successMessage, setSuccessMessage] = useState("");
 
     const handleChange = (event) => {
@@ -80,12 +81,17 @@ const ReportComplaint = () => {
     };
 
     const useCurrentLocation = () => {
-        setForm((previous) => ({
-            ...previous,
-            location: "Bhopal, Madhya Pradesh",
-            latitude: "23.2599",
-            longitude: "77.4126",
-        }));
+        if (!navigator.geolocation) {
+            setErrors((previous) => ({
+                ...previous,
+                location:
+                    "Location services are not supported by this browser.",
+            }));
+
+            return;
+        }
+
+        setLocationLoading(true);
 
         setErrors((previous) => ({
             ...previous,
@@ -93,6 +99,82 @@ const ReportComplaint = () => {
             latitude: "",
             longitude: "",
         }));
+
+        navigator.geolocation.getCurrentPosition(
+            async (position) => {
+                const latitude = position.coords.latitude.toFixed(6);
+                const longitude = position.coords.longitude.toFixed(6);
+
+                let address = `${latitude}, ${longitude}`;
+
+                try {
+                    const response = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+                    );
+
+                    if (response.ok) {
+                        const data = await response.json();
+
+                        if (data.display_name) {
+                            address = data.display_name;
+                        }
+                    }
+                } catch (error) {
+                    console.error(
+                        "Reverse geocoding error:",
+                        error
+                    );
+                }
+
+                setForm((previous) => ({
+                    ...previous,
+                    location: address,
+                    latitude,
+                    longitude,
+                }));
+
+                setErrors((previous) => ({
+                    ...previous,
+                    location: "",
+                    latitude: "",
+                    longitude: "",
+                }));
+
+                setLocationLoading(false);
+            },
+            (error) => {
+                console.error(
+                    "Get current location error:",
+                    error
+                );
+
+                let message =
+                    "Unable to get your current location.";
+
+                if (error.code === 1) {
+                    message =
+                        "Location permission was denied. Please allow location access and try again.";
+                } else if (error.code === 2) {
+                    message =
+                        "Your current location could not be determined. Please try again.";
+                } else if (error.code === 3) {
+                    message =
+                        "Location request timed out. Please try again.";
+                }
+
+                setErrors((previous) => ({
+                    ...previous,
+                    location: message,
+                }));
+
+                setLocationLoading(false);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0,
+            }
+        );
     };
 
     const validateForm = () => {
@@ -328,7 +410,9 @@ const ReportComplaint = () => {
                                 name="description"
                                 value={form.description}
                                 onChange={(event) => {
-                                    if (event.target.value.length <= 500) {
+                                    if (
+                                        event.target.value.length <= 500
+                                    ) {
                                         handleChange(event);
                                     }
                                 }}
@@ -369,7 +453,10 @@ const ReportComplaint = () => {
                                 </option>
 
                                 {categories.map((category) => (
-                                    <option key={category} value={category}>
+                                    <option
+                                        key={category}
+                                        value={category}
+                                    >
                                         {category}
                                     </option>
                                 ))}
@@ -392,10 +479,14 @@ const ReportComplaint = () => {
                                 <button
                                     type="button"
                                     onClick={useCurrentLocation}
-                                    className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-900 hover:bg-blue-100"
+                                    disabled={locationLoading}
+                                    className="flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-900 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
                                 >
                                     <FiMapPin />
-                                    Use Current Location
+
+                                    {locationLoading
+                                        ? "Getting Location..."
+                                        : "Use Current Location"}
                                 </button>
                             </div>
 

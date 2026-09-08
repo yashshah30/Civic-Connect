@@ -11,6 +11,7 @@ import Navbar from "../../components/layout/navbar";
 import Card from "../../components/ui/card";
 import StatusBadge from "../../components/citizen/StatusBadge";
 import StatusTimeline from "../../components/citizen/StatusTimeline";
+import ComplaintLocationMap from "../../components/citizen/ComplaintLocationMap";
 
 const API_BASE_URL =
     import.meta.env.VITE_API_URL ||
@@ -294,6 +295,15 @@ const ComplaintDetails = () => {
                                         <p className="mt-1 font-semibold text-slate-900">
                                             {location}
                                         </p>
+
+                                        {complaint.latitude &&
+                                            complaint.longitude && (
+                                                <p className="mt-1 text-xs text-slate-500">
+                                                    Coordinates:{" "}
+                                                    {complaint.latitude},{" "}
+                                                    {complaint.longitude}
+                                                </p>
+                                            )}
                                     </div>
                                 </div>
 
@@ -314,6 +324,29 @@ const ComplaintDetails = () => {
                                     </div>
                                 </div>
 
+                            </div>
+                        </Card>
+
+                        {/* Complaint Location Map */}
+                        <Card>
+                            <div className="flex items-center gap-2">
+                                <FiMapPin className="text-blue-900" />
+
+                                <h2 className="text-xl font-bold text-slate-900">
+                                    Complaint Location
+                                </h2>
+                            </div>
+
+                            <p className="mt-2 text-sm text-slate-500">
+                                Map showing the location where this complaint was submitted.
+                            </p>
+
+                            <div className="mt-4">
+                                <ComplaintLocationMap
+                                    latitude={complaint.latitude}
+                                    longitude={complaint.longitude}
+                                    address={complaint.address}
+                                />
                             </div>
                         </Card>
 
