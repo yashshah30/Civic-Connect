@@ -2,10 +2,15 @@ import { useEffect, useState } from "react";
 
 const NotificationPanel = () => {
     const [notifications, setNotifications] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState("");
 
     useEffect(() => {
         const fetchNotifications = async () => {
             try {
+                setLoading(true);
+                setError("");
+
                 const token = localStorage.getItem("access_token");
 
                 const response = await fetch(
@@ -21,9 +26,16 @@ const NotificationPanel = () => {
 
                 if (response.ok && data.success) {
                     setNotifications(data.notifications || []);
+                } else {
+                    setError(
+                        data.message || "Failed to load notifications."
+                    );
                 }
             } catch (error) {
                 console.error("Failed to load notifications:", error);
+                setError("Failed to load notifications.");
+            } finally {
+                setLoading(false);
             }
         };
 
@@ -34,32 +46,146 @@ const NotificationPanel = () => {
         (notification) => !notification.is_read
     ).length;
 
-    const markAsRead = (id) => {
-        setNotifications((current) =>
-            current.map((notification) =>
-                notification.id === id
-                    ? { ...notification, is_read: true }
-                    : notification
-            )
-        );
+    const markAsRead = async (id) => {
+        try {
+            const token = localStorage.getItem("access_token");
+
+            const response = await fetch(
+                `${import.meta.env.VITE_API_URL}/api/notifications/${id}/read`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                console.error(
+                    "Failed to mark notification as read:",
+                    data.message
+                );
+                return;
+            }
+
+            setNotifications((current) =>
+                current.map((notification) =>
+                    notification.id === id
+                        ? { ...notification, is_read: true }
+                        : notification
+                )
+            );
+        } catch (error) {
+            console.error(
+                "Failed to mark notification as read:",
+                error
+            );
+        }
     };
 
-    const markAllAsRead = () => {
-        setNotifications((current) =>
-            current.map((notification) => ({
-                ...notification,
-                is_read: true,
-            }))
-        );
+    const markAllAsRead = async () => {
+        try {
+            const token = localStorage.getItem("access_token");
+
+            const response = await fetch(
+                `${import.meta.env.VITE_API_URL}/api/notifications/read-all`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                console.error(
+                    "Failed to mark all notifications as read:",
+                    data.message
+                );
+                return;
+            }
+
+            setNotifications((current) =>
+                current.map((notification) => ({
+                    ...notification,
+                    is_read: true,
+                }))
+            );
+        } catch (error) {
+            console.error(
+                "Failed to mark all notifications as read:",
+                error
+            );
+        }
     };
 
-    const clearNotifications = () => {
-        setNotifications([]);
+    const clearNotifications = async () => {
+        const confirmed = window.confirm(
+            "Are you sure you want to clear all notifications?"
+        );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem("access_token");
+
+            const response = await fetch(
+                `${import.meta.env.VITE_API_URL}/api/notifications`,
+                {
+                    method: "DELETE",
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                console.error(
+                    "Failed to clear notifications:",
+                    data.message
+                );
+                return;
+            }
+
+            setNotifications([]);
+        } catch (error) {
+            console.error(
+                "Failed to clear notifications:",
+                error
+            );
+        }
     };
+
+    if (loading) {
+        return (
+            <div className="mx-auto w-full max-w-3xl px-4 py-8">
+                <p className="text-sm text-slate-600">
+                    Loading notifications...
+                </p>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="mx-auto w-full max-w-3xl px-4 py-8">
+                <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {error}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="mx-auto w-full max-w-3xl px-4 py-8">
-            {/* Header */}
             <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900">
@@ -92,7 +218,6 @@ const NotificationPanel = () => {
                 </div>
             </div>
 
-            {/* Notification count */}
             {notifications.length > 0 && (
                 <div className="mb-4 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-900">
                     You have{" "}
@@ -102,7 +227,6 @@ const NotificationPanel = () => {
                 </div>
             )}
 
-            {/* Notifications */}
             <div className="space-y-3">
                 {notifications.map((notification) => (
                     <div
@@ -114,12 +238,10 @@ const NotificationPanel = () => {
                         }`}
                     >
                         <div className="flex gap-3">
-                            {/* Icon */}
                             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-100 text-lg">
                                 🔔
                             </div>
 
-                            {/* Content */}
                             <div className="min-w-0 flex-1">
                                 <div className="flex flex-col justify-between gap-2 sm:flex-row">
                                     <p
@@ -161,7 +283,6 @@ const NotificationPanel = () => {
                 ))}
             </div>
 
-            {/* Empty state */}
             {notifications.length === 0 && (
                 <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-12 text-center">
                     <div className="text-4xl">🔕</div>
