@@ -26,6 +26,7 @@ import CitizenLayout from "../components/citizen/CitizenLayout";
 import AuthorityDashboard from "../pages/authority/AuthorityDashboard";
 import AuthorityComplaints from "../pages/authority/AuthorityComplaints";
 import AuthorityComplaintDetails from "../pages/authority/AuthorityComplaintDetails";
+import CivicMap from "../pages/authority/CivicMap";
 
 // 404
 import NotFound from "../pages/notfound/notfound";
@@ -104,9 +105,16 @@ function AppRoutes() {
           element={<AuthorityComplaints />}
         />
 
+        
+
         <Route
           path="/authority/complaints/:id"
           element={<AuthorityComplaintDetails />}
+        />
+
+        <Route
+          path="/authority/map"
+          element={<CivicMap />}
         />
 
         {/* 404 */}

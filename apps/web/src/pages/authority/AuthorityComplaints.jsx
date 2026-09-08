@@ -1,104 +1,45 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import ComplaintFilters from "../../components/authority/ComplaintFilters";
 
-const complaints = [
-  {
-    id: "CC-001",
-    title: "Road pothole",
-    category: "Road",
-    citizen: "Citizen #102",
-    location: "Bhopal",
-    priority: "High",
-    status: "Under Review",
-    department: "Road Department",
-    date: "2026-08-20",
-  },
-  {
-    id: "CC-002",
-    title: "Street light not working",
-    category: "Electricity",
-    citizen: "Citizen #205",
-    location: "Bhopal",
-    priority: "Medium",
-    status: "Assigned",
-    department: "Electricity Department",
-    date: "2026-08-20",
-  },
-  {
-    id: "CC-003",
-    title: "Garbage collection issue",
-    category: "Sanitation",
-    citizen: "Citizen #311",
-    location: "Bhopal",
-    priority: "Low",
-    status: "Resolved",
-    department: "Sanitation Department",
-    date: "2026-08-19",
-  },
-  {
-    id: "CC-004",
-    title: "Water leakage",
-    category: "Water Supply",
-    citizen: "Citizen #418",
-    location: "Bhopal",
-    priority: "Urgent",
-    status: "In Progress",
-    department: "Water Supply Department",
-    date: "2026-08-19",
-  },
-  {
-    id: "CC-005",
-    title: "Damaged footpath",
-    category: "Road",
-    citizen: "Citizen #521",
-    location: "Bhopal",
-    priority: "Medium",
-    status: "Submitted",
-    department: "Road Department",
-    date: "2026-08-18",
-  },
-  {
-    id: "CC-006",
-    title: "Open drainage issue",
-    category: "Sanitation",
-    citizen: "Citizen #632",
-    location: "Bhopal",
-    priority: "High",
-    status: "Submitted",
-    department: "Sanitation Department",
-    date: "2026-08-17",
-  },
-  {
-    id: "CC-007",
-    title: "Broken traffic signal",
-    category: "Public Safety",
-    citizen: "Citizen #741",
-    location: "Bhopal",
-    priority: "Urgent",
-    status: "Under Review",
-    department: "Public Safety Department",
-    date: "2026-08-16",
-  },
-];
+const API_BASE =
+  "https://civic-connect-backend-6i78.onrender.com";
 
 const priorityStyles = {
-  Urgent: "bg-red-100 text-red-700",
-  High: "bg-orange-100 text-orange-700",
-  Medium: "bg-yellow-100 text-yellow-700",
-  Low: "bg-green-100 text-green-700",
+  urgent: "bg-red-100 text-red-700",
+  high: "bg-orange-100 text-orange-700",
+  medium: "bg-yellow-100 text-yellow-700",
+  low: "bg-green-100 text-green-700",
 };
 
 const statusStyles = {
-  Submitted: "bg-slate-100 text-slate-700",
-  "Under Review": "bg-blue-100 text-blue-700",
-  Assigned: "bg-purple-100 text-purple-700",
-  "In Progress": "bg-yellow-100 text-yellow-700",
-  Resolved: "bg-green-100 text-green-700",
-  Rejected: "bg-red-100 text-red-700",
+  submitted: "bg-slate-100 text-slate-700",
+  under_review: "bg-blue-100 text-blue-700",
+  assigned: "bg-purple-100 text-purple-700",
+  in_progress: "bg-yellow-100 text-yellow-700",
+  resolved: "bg-green-100 text-green-700",
+  rejected: "bg-red-100 text-red-700",
+};
+
+const formatStatus = (status) => {
+  if (!status) return "Submitted";
+
+  return status
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const formatPriority = (priority) => {
+  if (!priority) return "Medium";
+
+  return priority.charAt(0).toUpperCase() + priority.slice(1);
 };
 
 export default function AuthorityComplaints() {
+  const [complaints, setComplaints] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
   const [category, setCategory] = useState("");
@@ -106,29 +47,96 @@ export default function AuthorityComplaints() {
   const [department, setDepartment] = useState("");
   const [date, setDate] = useState("");
 
+  useEffect(() => {
+    fetchComplaints();
+  }, []);
+
+  const fetchComplaints = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const token = localStorage.getItem("access_token");
+
+      if (!token) {
+        throw new Error("Authentication token not found");
+      }
+
+      const response = await fetch(
+        `${API_BASE}/api/complaints/authority`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.message || "Failed to fetch complaints"
+        );
+      }
+
+      setComplaints(data.complaints || []);
+    } catch (err) {
+      console.error("Error fetching authority complaints:", err);
+      setError(err.message || "Failed to load complaints");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const filteredComplaints = useMemo(() => {
     return complaints.filter((complaint) => {
       const searchValue = search.toLowerCase().trim();
 
+      const complaintStatus =
+        complaint.status?.toLowerCase() || "";
+
+      const complaintPriority =
+        complaint.priority?.toLowerCase() || "";
+
+      const complaintCategory =
+        complaint.category?.toLowerCase() || "";
+
+      const complaintDepartment =
+        complaint.department?.toLowerCase() || "";
+
       const matchesSearch =
         !searchValue ||
-        complaint.id.toLowerCase().includes(searchValue) ||
-        complaint.title.toLowerCase().includes(searchValue);
+        String(complaint.id)
+          .toLowerCase()
+          .includes(searchValue) ||
+        (complaint.title || "")
+          .toLowerCase()
+          .includes(searchValue);
 
       const matchesStatus =
-        !status || complaint.status === status;
+        !status ||
+        complaintStatus === status.toLowerCase();
 
       const matchesCategory =
-        !category || complaint.category === category;
+        !category ||
+        complaintCategory === category.toLowerCase();
 
       const matchesPriority =
-        !priority || complaint.priority === priority;
+        !priority ||
+        complaintPriority === priority.toLowerCase();
 
       const matchesDepartment =
-        !department || complaint.department === department;
+        !department ||
+        complaintDepartment === department.toLowerCase();
+
+      const complaintDate = complaint.created_at
+        ? new Date(complaint.created_at)
+            .toISOString()
+            .split("T")[0]
+        : "";
 
       const matchesDate =
-        !date || complaint.date === date;
+        !date || complaintDate === date;
 
       return (
         matchesSearch &&
@@ -140,6 +148,7 @@ export default function AuthorityComplaints() {
       );
     });
   }, [
+    complaints,
     search,
     status,
     category,
@@ -223,6 +232,27 @@ export default function AuthorityComplaints() {
           />
         </div>
 
+        {/* Error */}
+        {error && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <p className="font-medium">
+              Unable to load complaints
+            </p>
+
+            <p className="mt-1">
+              {error}
+            </p>
+
+            <button
+              type="button"
+              onClick={fetchComplaints}
+              className="mt-3 rounded-lg bg-red-700 px-4 py-2 text-sm font-medium text-white hover:bg-red-800"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Results */}
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
@@ -235,26 +265,41 @@ export default function AuthorityComplaints() {
               </h3>
 
               <p className="text-sm text-slate-500">
-                {filteredComplaints.length}{" "}
-                {filteredComplaints.length === 1
-                  ? "complaint"
-                  : "complaints"}{" "}
-                found
+                {loading
+                  ? "Loading complaints..."
+                  : `${filteredComplaints.length} ${
+                      filteredComplaints.length === 1
+                        ? "complaint"
+                        : "complaints"
+                    } found`}
               </p>
             </div>
 
-            <div className="rounded-lg bg-blue-50 px-3 py-2 text-xs font-medium text-blue-800">
-              Live UI Preview
-            </div>
+            {!loading && !error && (
+              <div className="rounded-lg bg-green-50 px-3 py-2 text-xs font-medium text-green-700">
+                Live Data
+              </div>
+            )}
 
           </div>
 
-          {/* Empty State */}
-          {filteredComplaints.length === 0 ? (
+          {/* Loading */}
+          {loading ? (
+            <div className="flex min-h-64 items-center justify-center px-6 py-12 text-center">
+              <div>
+                <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-blue-800" />
+
+                <p className="mt-4 text-sm font-medium text-slate-500">
+                  Loading complaints from server...
+                </p>
+              </div>
+            </div>
+          ) : filteredComplaints.length === 0 ? (
+            /* Empty State */
             <div className="flex min-h-64 flex-col items-center justify-center px-6 py-12 text-center">
 
               <div className="flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-2xl">
-                🔍
+                📋
               </div>
 
               <h3 className="mt-4 font-semibold text-slate-900">
@@ -299,77 +344,95 @@ export default function AuthorityComplaints() {
 
                   <tbody className="divide-y divide-slate-100">
 
-                    {filteredComplaints.map((complaint) => (
+                    {filteredComplaints.map((complaint) => {
+                      const formattedStatus =
+                        formatStatus(complaint.status);
 
-                      <tr
-                        key={complaint.id}
-                        className="transition hover:bg-slate-50"
-                      >
+                      const formattedPriority =
+                        formatPriority(complaint.priority);
 
-                        <td className="px-5 py-4 font-semibold text-blue-900">
-                          {complaint.id}
-                        </td>
+                      return (
+                        <tr
+                          key={complaint.id}
+                          className="transition hover:bg-slate-50"
+                        >
 
-                        <td className="px-5 py-4">
-                          <p className="font-medium text-slate-800">
-                            {complaint.title}
-                          </p>
+                          <td className="px-5 py-4 font-semibold text-blue-900">
+                            {complaint.id}
+                          </td>
 
-                          <p className="mt-1 text-xs text-slate-400">
-                            {complaint.location}
-                          </p>
-                        </td>
+                          <td className="px-5 py-4">
+                            <p className="font-medium text-slate-800">
+                              {complaint.title}
+                            </p>
 
-                        <td className="px-5 py-4 text-slate-600">
-                          {complaint.category}
-                        </td>
+                            <p className="mt-1 text-xs text-slate-400">
+                              {complaint.address ||
+                                complaint.location ||
+                                "Location unavailable"}
+                            </p>
+                          </td>
 
-                        <td className="px-5 py-4 text-slate-600">
-                          {complaint.department}
-                        </td>
+                          <td className="px-5 py-4 text-slate-600">
+                            {complaint.category || "General"}
+                          </td>
 
-                        <td className="px-5 py-4">
+                          <td className="px-5 py-4 text-slate-600">
+                            {complaint.department || "Unassigned"}
+                          </td>
 
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-medium ${
-                              priorityStyles[complaint.priority]
-                            }`}
-                          >
-                            {complaint.priority}
-                          </span>
+                          <td className="px-5 py-4">
 
-                        </td>
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-medium ${
+                                priorityStyles[
+                                  complaint.priority?.toLowerCase()
+                                ] ||
+                                "bg-slate-100 text-slate-700"
+                              }`}
+                            >
+                              {formattedPriority}
+                            </span>
 
-                        <td className="px-5 py-4">
+                          </td>
 
-                          <span
-                            className={`rounded-full px-3 py-1 text-xs font-medium ${
-                              statusStyles[complaint.status]
-                            }`}
-                          >
-                            {complaint.status}
-                          </span>
+                          <td className="px-5 py-4">
 
-                        </td>
+                            <span
+                              className={`rounded-full px-3 py-1 text-xs font-medium ${
+                                statusStyles[
+                                  complaint.status?.toLowerCase()
+                                ] ||
+                                "bg-slate-100 text-slate-700"
+                              }`}
+                            >
+                              {formattedStatus}
+                            </span>
 
-                        <td className="px-5 py-4 text-slate-600">
-                          {complaint.date}
-                        </td>
+                          </td>
 
-                        <td className="px-5 py-4">
+                          <td className="px-5 py-4 text-slate-600">
+                            {complaint.created_at
+                              ? new Date(
+                                  complaint.created_at
+                                ).toLocaleDateString()
+                              : "N/A"}
+                          </td>
 
-                          <Link
-                            to={`/authority/complaints/${complaint.id}`}
-                            className="font-medium text-blue-800 hover:underline"
-                          >
-                            View
-                          </Link>
+                          <td className="px-5 py-4">
 
-                        </td>
+                            <Link
+                              to={`/authority/complaints/${complaint.id}`}
+                              className="font-medium text-blue-800 hover:underline"
+                            >
+                              View
+                            </Link>
 
-                      </tr>
+                          </td>
 
-                    ))}
+                        </tr>
+                      );
+                    })}
 
                   </tbody>
 
@@ -380,64 +443,97 @@ export default function AuthorityComplaints() {
               {/* Mobile */}
               <div className="space-y-4 p-4 md:hidden">
 
-                {filteredComplaints.map((complaint) => (
+                {filteredComplaints.map((complaint) => {
+                  const formattedStatus =
+                    formatStatus(complaint.status);
 
-                  <div
-                    key={complaint.id}
-                    className="rounded-xl border border-slate-200 p-4 transition hover:shadow-sm"
-                  >
+                  const formattedPriority =
+                    formatPriority(complaint.priority);
 
-                    <div className="flex items-start justify-between gap-3">
+                  return (
+                    <div
+                      key={complaint.id}
+                      className="rounded-xl border border-slate-200 p-4 transition hover:shadow-sm"
+                    >
 
-                      <div>
-                        <p className="font-semibold text-blue-900">
-                          {complaint.id}
-                        </p>
+                      <div className="flex items-start justify-between gap-3">
 
-                        <h4 className="mt-1 font-medium text-slate-800">
-                          {complaint.title}
-                        </h4>
+                        <div>
+                          <p className="font-semibold text-blue-900">
+                            {complaint.id}
+                          </p>
+
+                          <h4 className="mt-1 font-medium text-slate-800">
+                            {complaint.title}
+                          </h4>
+                        </div>
+
+                        <span
+                          className={`rounded-full px-2 py-1 text-xs font-medium ${
+                            priorityStyles[
+                              complaint.priority?.toLowerCase()
+                            ] ||
+                            "bg-slate-100 text-slate-700"
+                          }`}
+                        >
+                          {formattedPriority}
+                        </span>
+
                       </div>
 
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          priorityStyles[complaint.priority]
-                        }`}
-                      >
-                        {complaint.priority}
-                      </span>
+                      <div className="mt-3 space-y-1 text-sm text-slate-500">
+                        <p>
+                          Category:{" "}
+                          {complaint.category || "General"}
+                        </p>
+
+                        <p>
+                          Department:{" "}
+                          {complaint.department || "Unassigned"}
+                        </p>
+
+                        <p>
+                          Location:{" "}
+                          {complaint.address ||
+                            complaint.location ||
+                            "N/A"}
+                        </p>
+
+                        <p>
+                          Date:{" "}
+                          {complaint.created_at
+                            ? new Date(
+                                complaint.created_at
+                              ).toLocaleDateString()
+                            : "N/A"}
+                        </p>
+                      </div>
+
+                      <div className="mt-4 flex items-center justify-between">
+
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-medium ${
+                            statusStyles[
+                              complaint.status?.toLowerCase()
+                            ] ||
+                            "bg-slate-100 text-slate-700"
+                          }`}
+                        >
+                          {formattedStatus}
+                        </span>
+
+                        <Link
+                          to={`/authority/complaints/${complaint.id}`}
+                          className="text-sm font-semibold text-blue-800 hover:underline"
+                        >
+                          View Details →
+                        </Link>
+
+                      </div>
 
                     </div>
-
-                    <div className="mt-3 space-y-1 text-sm text-slate-500">
-                      <p>Category: {complaint.category}</p>
-                      <p>Department: {complaint.department}</p>
-                      <p>Location: {complaint.location}</p>
-                      <p>Date: {complaint.date}</p>
-                    </div>
-
-                    <div className="mt-4 flex items-center justify-between">
-
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-medium ${
-                          statusStyles[complaint.status]
-                        }`}
-                      >
-                        {complaint.status}
-                      </span>
-
-                      <Link
-                        to={`/authority/complaints/${complaint.id}`}
-                        className="text-sm font-semibold text-blue-800 hover:underline"
-                      >
-                        View Details →
-                      </Link>
-
-                    </div>
-
-                  </div>
-
-                ))}
+                  );
+                })}
 
               </div>
             </>
