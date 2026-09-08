@@ -1,5 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
-import { FiSearch, FiFilter, FiRotateCcw } from "react-icons/fi";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+    FiSearch,
+    FiFilter,
+    FiRotateCcw,
+    FiRefreshCw,
+} from "react-icons/fi";
 
 import Navbar from "../../components/layout/navbar";
 import ComplaintCard from "../../components/citizen/ComplaintCard";
@@ -46,66 +51,66 @@ const MyComplaints = () => {
 
     const [currentPage, setCurrentPage] = useState(1);
 
-    useEffect(() => {
-        const fetchComplaints = async () => {
-            try {
-                setLoading(true);
-                setError("");
+    const fetchComplaints = useCallback(async () => {
+        try {
+            setLoading(true);
+            setError("");
 
-                const token =
-                    localStorage.getItem("access_token");
+            const token =
+                localStorage.getItem("access_token");
 
-                if (!token) {
-                    throw new Error(
-                        "Please log in again."
-                    );
-                }
-
-                const response = await fetch(
-                    `${API_BASE_URL}/api/complaints/my`,
-                    {
-                        method: "GET",
-                        headers: {
-                            "Content-Type": "application/json",
-                            Authorization: `Bearer ${token}`,
-                        },
-                    }
+            if (!token) {
+                throw new Error(
+                    "Please log in again."
                 );
+            }
 
-                const data = await response.json();
-
-                if (!response.ok || !data.success) {
-                    throw new Error(
-                        data.message ||
-                            "Failed to load complaints."
-                    );
+            const response = await fetch(
+                `${API_BASE_URL}/api/complaints/my`,
+                {
+                    method: "GET",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                    },
                 }
+            );
 
-                setComplaints(data.complaints || []);
-            } catch (error) {
-                console.error(
-                    "Fetch citizen complaints error:",
-                    error
-                );
+            const data = await response.json();
 
-                setError(
-                    error.message ||
+            if (!response.ok || !data.success) {
+                throw new Error(
+                    data.message ||
                         "Failed to load complaints."
                 );
-            } finally {
-                setLoading(false);
             }
-        };
 
-        fetchComplaints();
+            setComplaints(data.complaints || []);
+        } catch (error) {
+            console.error(
+                "Fetch citizen complaints error:",
+                error
+            );
+
+            setError(
+                error.message ||
+                    "Failed to load complaints."
+            );
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
+    useEffect(() => {
+        fetchComplaints();
+    }, [fetchComplaints]);
+
     const filteredComplaints = useMemo(() => {
+        const searchText =
+            search.toLowerCase().trim();
+
         let result = complaints.filter(
             (complaint) => {
-                const searchText =
-                    search.toLowerCase().trim();
-
                 const complaintId =
                     String(complaint.id || "")
                         .toLowerCase();
@@ -118,19 +123,46 @@ const MyComplaints = () => {
                     String(complaint.category || "")
                         .toLowerCase();
 
+                const complaintDescription =
+                    String(
+                        complaint.description || ""
+                    ).toLowerCase();
+
+                const complaintLocation =
+                    String(
+                        complaint.address || ""
+                    ).toLowerCase();
+
                 const matchesSearch =
-                    complaintId.includes(searchText) ||
-                    complaintTitle.includes(searchText) ||
-                    complaintCategory.includes(searchText);
+                    !searchText ||
+                    complaintId.includes(
+                        searchText
+                    ) ||
+                    complaintTitle.includes(
+                        searchText
+                    ) ||
+                    complaintCategory.includes(
+                        searchText
+                    ) ||
+                    complaintDescription.includes(
+                        searchText
+                    ) ||
+                    complaintLocation.includes(
+                        searchText
+                    );
 
                 const matchesStatus =
                     status === "All" ||
-                    formatStatus(complaint.status) ===
-                        status;
+                    formatStatus(
+                        complaint.status
+                    ) === status;
 
                 const matchesCategory =
                     category === "All" ||
-                    complaint.category === category;
+                    String(
+                        complaint.category || ""
+                    ).toLowerCase() ===
+                        category.toLowerCase();
 
                 const formattedPriority =
                     formatPriority(
@@ -139,11 +171,13 @@ const MyComplaints = () => {
 
                 const matchesPriority =
                     priority === "All" ||
-                    formattedPriority === priority;
+                    formattedPriority ===
+                        priority;
 
-                const complaintDate = new Date(
-                    complaint.created_at
-                );
+                const complaintDate =
+                    new Date(
+                        complaint.created_at
+                    );
 
                 const today = new Date();
 
@@ -214,11 +248,17 @@ const MyComplaints = () => {
                 return dateA - dateB;
             }
 
-            if (sortOrder === "highestPriority") {
+            if (
+                sortOrder ===
+                "highestPriority"
+            ) {
                 return priorityB - priorityA;
             }
 
-            if (sortOrder === "lowestPriority") {
+            if (
+                sortOrder ===
+                "lowestPriority"
+            ) {
                 return priorityA - priorityB;
             }
 
@@ -241,11 +281,37 @@ const MyComplaints = () => {
             ITEMS_PER_PAGE
     );
 
+    useEffect(() => {
+        if (
+            totalPages > 0 &&
+            currentPage > totalPages
+        ) {
+            setCurrentPage(totalPages);
+        }
+
+        if (
+            totalPages === 0 &&
+            currentPage !== 1
+        ) {
+            setCurrentPage(1);
+        }
+    }, [totalPages, currentPage]);
+
     const paginatedComplaints =
         filteredComplaints.slice(
-            (currentPage - 1) * ITEMS_PER_PAGE,
-            currentPage * ITEMS_PER_PAGE
+            (currentPage - 1) *
+                ITEMS_PER_PAGE,
+            currentPage *
+                ITEMS_PER_PAGE
         );
+
+    const hasActiveFilters =
+        search.trim() !== "" ||
+        status !== "All" ||
+        category !== "All" ||
+        priority !== "All" ||
+        date !== "All" ||
+        sortOrder !== "newest";
 
     const handleSearch = (event) => {
         setSearch(event.target.value);
@@ -301,7 +367,7 @@ const MyComplaints = () => {
                             type="text"
                             value={search}
                             onChange={handleSearch}
-                            placeholder="Search by complaint ID, title or category..."
+                            placeholder="Search by ID, title, category, description or location..."
                             className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-11 pr-4 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
                         />
                     </div>
@@ -322,7 +388,10 @@ const MyComplaints = () => {
                         <button
                             type="button"
                             onClick={resetFilters}
-                            className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                            disabled={
+                                !hasActiveFilters
+                            }
+                            className="flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                             <FiRotateCcw />
                             Reset
@@ -337,7 +406,7 @@ const MyComplaints = () => {
                             onChange={handleFilterChange(
                                 setStatus
                             )}
-                            className="rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-blue-800"
+                            className="rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
                         >
                             <option value="All">
                                 All Statuses
@@ -374,7 +443,7 @@ const MyComplaints = () => {
                             onChange={handleFilterChange(
                                 setCategory
                             )}
-                            className="rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-blue-800"
+                            className="rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
                         >
                             <option value="All">
                                 All Categories
@@ -407,7 +476,7 @@ const MyComplaints = () => {
                             onChange={handleFilterChange(
                                 setPriority
                             )}
-                            className="rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-blue-800"
+                            className="rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
                         >
                             <option value="All">
                                 All Priorities
@@ -432,7 +501,7 @@ const MyComplaints = () => {
                             onChange={handleFilterChange(
                                 setDate
                             )}
-                            className="rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-blue-800"
+                            className="rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
                         >
                             <option value="All">
                                 All Dates
@@ -457,7 +526,7 @@ const MyComplaints = () => {
                             onChange={handleFilterChange(
                                 setSortOrder
                             )}
-                            className="rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-blue-800 sm:col-span-2 lg:col-span-2"
+                            className="rounded-xl border border-slate-300 bg-white p-3 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 sm:col-span-2 lg:col-span-2"
                         >
                             <option value="newest">
                                 Newest First
@@ -481,16 +550,45 @@ const MyComplaints = () => {
 
                 {/* Loading */}
                 {loading && (
-                    <div className="rounded-2xl bg-white p-10 text-center shadow">
-                        <p className="text-sm text-slate-500">
-                            Loading your complaints...
-                        </p>
+                    <div className="space-y-5">
+
+                        {Array.from(
+                            { length: 3 },
+                            (_, index) => (
+                                <div
+                                    key={index}
+                                    className="animate-pulse rounded-2xl bg-white p-6 shadow"
+                                >
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="flex-1">
+                                            <div className="h-3 w-56 rounded bg-slate-200" />
+
+                                            <div className="mt-3 h-5 w-40 rounded bg-slate-200" />
+
+                                            <div className="mt-4 h-3 w-full max-w-xl rounded bg-slate-200" />
+
+                                            <div className="mt-2 h-3 w-3/4 rounded bg-slate-200" />
+                                        </div>
+
+                                        <div className="h-6 w-20 rounded-full bg-slate-200" />
+                                    </div>
+
+                                    <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                        <div className="h-10 rounded bg-slate-100" />
+                                        <div className="h-10 rounded bg-slate-100" />
+                                        <div className="h-10 rounded bg-slate-100" />
+                                    </div>
+                                </div>
+                            )
+                        )}
+
                     </div>
                 )}
 
                 {/* Error */}
                 {!loading && error && (
                     <div className="rounded-2xl bg-red-50 p-10 text-center">
+
                         <h3 className="text-lg font-semibold text-red-800">
                             Unable to load complaints
                         </h3>
@@ -498,14 +596,28 @@ const MyComplaints = () => {
                         <p className="mt-2 text-sm text-red-600">
                             {error}
                         </p>
+
+                        <button
+                            type="button"
+                            onClick={
+                                fetchComplaints
+                            }
+                            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800"
+                        >
+                            <FiRefreshCw />
+                            Try Again
+                        </button>
+
                     </div>
                 )}
 
                 {/* Results */}
                 {!loading && !error && (
                     <>
+
                         {/* Results count */}
                         <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+
                             <p className="text-sm text-slate-600">
                                 Showing{" "}
                                 <span className="font-semibold text-slate-900">
@@ -530,9 +642,10 @@ const MyComplaints = () => {
                                     {totalPages}
                                 </p>
                             )}
+
                         </div>
 
-                        {/* Complaints */}
+                        {/* Complaint results */}
                         {paginatedComplaints.length >
                         0 ? (
                             <div className="grid gap-5">
@@ -549,14 +662,38 @@ const MyComplaints = () => {
                                     )
                                 )}
                             </div>
-                        ) : (
-                            <div className="rounded-2xl bg-white p-10 text-center shadow">
-                                <h3 className="text-lg font-semibold text-slate-900">
-                                    No complaints found
+                        ) : complaints.length ===
+                          0 ? (
+                            /* No complaints at all */
+                            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center shadow">
+
+                                <div className="text-4xl">
+                                    📋
+                                </div>
+
+                                <h3 className="mt-4 text-lg font-semibold text-slate-900">
+                                    No complaints yet
                                 </h3>
 
-                                <p className="mt-2 text-sm text-slate-500">
-                                    Try changing your search or filters.
+                                <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+                                    You haven't submitted any complaints yet. Your reported civic issues will appear here.
+                                </p>
+
+                            </div>
+                        ) : (
+                            /* No filter results */
+                            <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center shadow">
+
+                                <div className="text-4xl">
+                                    🔍
+                                </div>
+
+                                <h3 className="mt-4 text-lg font-semibold text-slate-900">
+                                    No matching complaints
+                                </h3>
+
+                                <p className="mx-auto mt-2 max-w-md text-sm text-slate-500">
+                                    No complaints match your current search and filters. Try changing your filters or search terms.
                                 </p>
 
                                 <button
@@ -564,10 +701,12 @@ const MyComplaints = () => {
                                     onClick={
                                         resetFilters
                                     }
-                                    className="mt-4 rounded-lg bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
+                                    className="mt-5 inline-flex items-center gap-2 rounded-lg bg-blue-900 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-800"
                                 >
+                                    <FiRotateCcw />
                                     Clear Filters
                                 </button>
+
                             </div>
                         )}
 
@@ -587,7 +726,7 @@ const MyComplaints = () => {
                                                 page - 1
                                         )
                                     }
-                                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                     Previous
                                 </button>
@@ -632,13 +771,14 @@ const MyComplaints = () => {
                                                 page + 1
                                         )
                                     }
-                                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-40"
+                                    className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                                 >
                                     Next
                                 </button>
 
                             </div>
                         )}
+
                     </>
                 )}
 
