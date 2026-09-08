@@ -10,6 +10,22 @@ const ComplaintCard = ({ complaint }) => {
         navigate(`/citizen/complaints/${complaint.id}`);
     };
 
+    const location =
+        complaint.address ||
+        (
+            complaint.latitude &&
+            complaint.longitude
+        )
+            ? complaint.address ||
+              `${complaint.latitude}, ${complaint.longitude}`
+            : "Location not provided";
+
+    const date = complaint.created_at
+        ? new Date(
+              complaint.created_at
+          ).toLocaleString()
+        : "Date unavailable";
+
     return (
         <div
             onClick={handleClick}
@@ -29,7 +45,9 @@ const ComplaintCard = ({ complaint }) => {
                             </h3>
                         </div>
 
-                        <StatusBadge status={complaint.status} />
+                        <StatusBadge
+                            status={complaint.status}
+                        />
                     </div>
 
                     <div className="grid grid-cols-1 gap-3 text-sm text-slate-600 sm:grid-cols-3">
@@ -44,14 +62,14 @@ const ComplaintCard = ({ complaint }) => {
                             <span className="font-semibold text-slate-800">
                                 Location:
                             </span>{" "}
-                            {complaint.location}
+                            {location}
                         </p>
 
                         <p>
                             <span className="font-semibold text-slate-800">
                                 Date:
                             </span>{" "}
-                            {complaint.date}
+                            {date}
                         </p>
                     </div>
 
@@ -72,3 +90,4 @@ const ComplaintCard = ({ complaint }) => {
 };
 
 export default ComplaintCard;
+
