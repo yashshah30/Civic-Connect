@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   MapContainer,
@@ -10,12 +10,11 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const API_URL =
-  "https://civic-connect-backend-6i78.onrender.com/api/complaints";
+const API_URL = "http://localhost:5000/api/complaints";
 
 const DEFAULT_CENTER = [23.2599, 77.4126];
 
-const markerIcon = new L.Icon({
+const complaintIcon = new L.Icon({
   iconUrl:
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
   iconRetinaUrl:
@@ -33,24 +32,9 @@ function MapCenter({ center }) {
 
   useEffect(() => {
     map.setView(center);
-  }, [map, center]);
+  }, [center, map]);
 
   return null;
-}
-
-function getStatusClass(status) {
-  switch (String(status || "").toLowerCase()) {
-    case "resolved":
-      return "bg-green-100 text-green-700";
-    case "in progress":
-      return "bg-blue-100 text-blue-700";
-    case "under review":
-      return "bg-yellow-100 text-yellow-700";
-    case "rejected":
-      return "bg-red-100 text-red-700";
-    default:
-      return "bg-slate-100 text-slate-700";
-  }
 }
 
 export default function CivicMap() {
@@ -65,28 +49,37 @@ export default function CivicMap() {
 
       const token = localStorage.getItem("access_token");
 
-      if (!token) {
-        throw new Error("Please login again to view the civic map.");
-      }
-
       const response = await fetch(API_URL, {
         headers: {
           Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.message || "Failed to load complaints."
-        );
+        throw new Error(data.message || "Failed to load complaints");
       }
 
-      setComplaints(data.complaints || []);
+      const complaintList = Array.isArray(data)
+        ? data
+        : data.complaints || data.data || [];
+
+      const mappedComplaints = complaintList.filter(
+        (complaint) =>
+          complaint.latitude !== null &&
+          complaint.latitude !== undefined &&
+          complaint.longitude !== null &&
+          complaint.longitude !== undefined &&
+          !Number.isNaN(Number(complaint.latitude)) &&
+          !Number.isNaN(Number(complaint.longitude))
+      );
+
+      setComplaints(mappedComplaints);
     } catch (err) {
-      console.error("Civic map error:", err);
-      setError(err.message || "Unable to load complaints.");
+      console.error("Failed to fetch complaints:", err);
+      setError(err.message || "Unable to load complaints");
     } finally {
       setLoading(false);
     }
@@ -96,138 +89,104 @@ export default function CivicMap() {
     fetchComplaints();
   }, []);
 
-  const mappedComplaints = useMemo(() => {
-    return complaints.filter((complaint) => {
-      const latitude = Number(complaint.latitude);
-      const longitude = Number(complaint.longitude);
-
-      return (
-        Number.isFinite(latitude) &&
-        Number.isFinite(longitude) &&
-        latitude >= -90 &&
-        latitude <= 90 &&
-        longitude >= -180 &&
-        longitude <= 180
-      );
-    });
-  }, [complaints]);
-
-  const mapCenter =
-    mappedComplaints.length > 0
+  const center =
+    complaints.length > 0
       ? [
-          Number(mappedComplaints[0].latitude),
-          Number(mappedComplaints[0].longitude),
+          Number(complaints[0].latitude),
+          Number(complaints[0].longitude),
         ]
       : DEFAULT_CENTER;
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-            <div>
-              <p className="text-sm font-medium text-slate-500">
-                Authority Portal
-              </p>
+      <div className="mx-auto max-w-7xl px-6 py-8">
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-slate-500">
+              Authority Portal
+            </p>
 
-              <h1 className="mt-1 text-3xl font-bold text-slate-900">
-                Civic Map
-              </h1>
+            <h1 className="text-3xl font-bold text-slate-900">
+              Civic Map
+            </h1>
 
-              <p className="mt-2 text-sm text-slate-600">
-                View reported civic complaints by location, category and
-                status.
-              </p>
-            </div>
+            <p className="mt-1 text-slate-600">
+              View reported civic complaints by location, category and status.
+            </p>
+          </div>
 
-            <div className="flex gap-3">
-              <Link
-                to="/authority/dashboard"
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-              >
-                Dashboard
-              </Link>
+          <div className="flex gap-3">
+            <Link
+              to="/authority/dashboard"
+              className="rounded-lg border border-slate-300 bg-white px-5 py-3 font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Dashboard
+            </Link>
 
-              <Link
-                to="/authority/complaints"
-                className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-              >
-                All Complaints
-              </Link>
-            </div>
+            <Link
+              to="/authority/complaints"
+              className="rounded-lg bg-slate-900 px-5 py-3 font-medium text-white hover:bg-slate-800"
+            >
+              All Complaints
+            </Link>
           </div>
         </div>
-      </div>
 
-      {/* Main */}
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-semibold text-slate-900">
+              <h2 className="text-lg font-semibold text-slate-900">
                 Complaint Locations
               </h2>
 
-              <p className="mt-1 text-sm text-slate-500">
-                {mappedComplaints.length} complaint
-                {mappedComplaints.length !== 1 ? "s" : ""} shown on map
+              <p className="text-sm text-slate-500">
+                {complaints.length} complaints shown on map
               </p>
             </div>
 
             <button
-              type="button"
               onClick={fetchComplaints}
               disabled={loading}
-              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
               {loading ? "Loading..." : "Refresh"}
             </button>
           </div>
         </div>
 
-        {loading && (
-          <div className="flex h-[600px] items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm">
-            <p className="text-sm text-slate-500">
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+            <p className="font-medium">Unable to load complaints</p>
+            <p className="mt-1 text-sm">{error}</p>
+          </div>
+        )}
+
+        {!loading && !error && complaints.length === 0 && (
+          <div className="mb-4 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-yellow-800">
+            No complaints with valid location coordinates were found.
+          </div>
+        )}
+
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          {loading ? (
+            <div className="flex h-[600px] items-center justify-center text-slate-500">
               Loading complaint locations...
-            </p>
-          </div>
-        )}
-
-        {!loading && error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
-            <h2 className="font-semibold text-red-800">
-              Unable to load the civic map
-            </h2>
-
-            <p className="mt-2 text-sm text-red-700">{error}</p>
-
-            <button
-              type="button"
-              onClick={fetchComplaints}
-              className="mt-4 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
-            >
-              Try Again
-            </button>
-          </div>
-        )}
-
-        {!loading && !error && (
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            </div>
+          ) : (
             <MapContainer
-              center={mapCenter}
+              center={center}
               zoom={13}
               scrollWheelZoom={true}
-              className="h-[600px] w-full"
+              style={{ height: "600px", width: "100%" }}
             >
-              <MapCenter center={mapCenter} />
+              <MapCenter center={center} />
 
               <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
               />
 
-              {mappedComplaints.map((complaint) => {
+              {complaints.map((complaint) => {
                 const latitude = Number(complaint.latitude);
                 const longitude = Number(complaint.longitude);
 
@@ -235,66 +194,52 @@ export default function CivicMap() {
                   <Marker
                     key={complaint.id}
                     position={[latitude, longitude]}
-                    icon={markerIcon}
+                    icon={complaintIcon}
                   >
                     <Popup>
-                      <div className="min-w-[220px]">
-                        <h3 className="text-base font-semibold text-slate-900">
-                          {complaint.title || "Civic Complaint"}
+                      <div className="min-w-[220px] text-sm">
+                        <h3 className="mb-2 text-base font-bold text-slate-900">
+                          {complaint.title ||
+                            complaint.subject ||
+                            "Civic Complaint"}
                         </h3>
 
-                        <p className="mt-1 text-xs text-slate-500">
-                          ID: {complaint.id}
-                        </p>
-
-                        <div className="mt-3 space-y-2 text-sm">
+                        <div className="space-y-1 text-slate-700">
                           <p>
-                            <span className="font-medium text-slate-700">
-                              Category:
-                            </span>{" "}
-                            {complaint.category || "Not specified"}
+                            <strong>ID:</strong> {complaint.id}
                           </p>
 
                           <p>
-                            <span className="font-medium text-slate-700">
-                              Status:
-                            </span>{" "}
-                            <span
-                              className={`rounded-full px-2 py-1 text-xs font-medium ${getStatusClass(
-                                complaint.status
-                              )}`}
-                            >
-                              {complaint.status || "Not specified"}
-                            </span>
+                            <strong>Category:</strong>{" "}
+                            {complaint.category || "N/A"}
                           </p>
 
                           <p>
-                            <span className="font-medium text-slate-700">
-                              Location:
-                            </span>{" "}
-                            {complaint.address || "Location not specified"}
+                            <strong>Status:</strong>{" "}
+                            {complaint.status || "N/A"}
                           </p>
 
-                          {complaint.priority && (
-                            <p>
-                              <span className="font-medium text-slate-700">
-                                Priority:
-                              </span>{" "}
-                              {complaint.priority}
-                            </p>
-                          )}
+                          <p>
+                            <strong>Priority:</strong>{" "}
+                            {complaint.priority || "N/A"}
+                          </p>
 
-                          <p className="text-xs text-slate-500">
-                            Coordinates: {latitude.toFixed(5)},{" "}
-                            {longitude.toFixed(5)}
+                          <p>
+                            <strong>Location:</strong>{" "}
+                            {complaint.address || "N/A"}
+                          </p>
+
+                          <p>
+                            <strong>Coordinates:</strong>{" "}
+                            {latitude}, {longitude}
                           </p>
                         </div>
 
                         <Link
                           to={`/authority/complaints/${complaint.id}`}
-                          className="mt-4 inline-block text-sm font-medium text-blue-600 hover:text-blue-800"
+                          className="mt-3 inline-block rounded-md bg-slate-900 px-3 py-2 text-xs font-medium text-white"
                         >
-                          View Complaint Details →
+                          View Details
                         </Link>
                       </div>
                     </Popup>
@@ -302,29 +247,9 @@ export default function CivicMap() {
                 );
               })}
             </MapContainer>
-          </div>
-        )}
-
-        {!loading &&
-          !error &&
-          complaints.length > 0 &&
-          mappedComplaints.length === 0 && (
-            <div className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-center">
-              <p className="text-sm text-yellow-800">
-                Complaints were found, but none have valid latitude and
-                longitude coordinates.
-              </p>
-            </div>
           )}
-
-        {!loading && !error && complaints.length === 0 && (
-          <div className="mt-4 rounded-xl border border-slate-200 bg-white p-6 text-center">
-            <p className="text-sm text-slate-500">
-              No complaints are available to display on the map.
-            </p>
-          </div>
-        )}
-      </main>
+        </div>
+      </div>
     </div>
   );
 }

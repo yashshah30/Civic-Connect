@@ -17,6 +17,7 @@ import ComplaintDetails from "../pages/citizen/ComplaintDetails";
 import Notifications from "../pages/citizen/Notifications";
 import ComplaintHistory from "../pages/citizen/ComplaintHistory";
 import CitizenAnalytics from "../pages/citizen/CitizenAnalytics";
+import CitizenMap from "../pages/citizen/CitizenMap";
 import CitizenLayout from "../components/citizen/CitizenLayout";
 
 // Authority
@@ -107,8 +108,15 @@ function AppRoutes() {
           element={<ComplaintHistory />}
         />
 
+        {/* Citizen Map */}
+        <Route
+          path="/citizen/map"
+          element={<CitizenMap />}
+        />
+
         <Route element={<ProtectedRoute />}>
           <Route element={<CitizenLayout />}>
+
             <Route
               path="/citizen/dashboard"
               element={<Dashboard />}
@@ -133,6 +141,12 @@ function AppRoutes() {
               path="/citizen/notifications"
               element={<Notifications />}
             />
+
+            <Route
+              path="/citizen/map"
+              element={<CitizenMap />}
+            />
+
           </Route>
         </Route>
 
