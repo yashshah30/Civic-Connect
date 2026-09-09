@@ -15,9 +15,8 @@ if (!date) {
 return "Date unavailable";
 }
 
-```
+
 return new Date(date).toLocaleString();
-```
 
 };
 
