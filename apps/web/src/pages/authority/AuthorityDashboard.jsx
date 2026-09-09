@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import AuthorityStats from "../../components/authority/AuthorityStats";
 
 const API_URL =
-  "https://civic-connect-backend-6i78.onrender.com/api/complaints";
+  "https://civic-connect-backend-6i78.onrender.com/api/complaints/authority";
 
 export default function AuthorityDashboard() {
   const [complaints, setComplaints] = useState([]);
