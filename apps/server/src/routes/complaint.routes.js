@@ -10,6 +10,7 @@ import {
   getAuthorityComplaints,
   getAuthorityComplaintById,
   updateComplaint,
+  getComplaintStatusHistory,
 } from "../controllers/complaint.controller.js";
 
 import { authMiddleware } from "../middleware/auth.middleware.js";
@@ -86,6 +87,13 @@ router.patch(
   authMiddleware,
   requireRole("authority"),
   updateComplaintStatus
+);
+
+router.get(
+  "/:id/status-history",
+  authMiddleware,
+  requireRole("citizen"),
+  getComplaintStatusHistory
 );
 
 // Authority: update complaint status/department

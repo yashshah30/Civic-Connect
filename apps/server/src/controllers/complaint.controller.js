@@ -240,6 +240,75 @@ export const getComplaintById = async (req, res) => {
   }
 };
 
+export const getComplaintStatusHistory = async (req, res) => {
+  try {
+    const authenticatedSupabase = getSupabase(req);
+    const { id } = req.params;
+
+    // Verify that this complaint belongs to the logged-in citizen
+    const { data: complaint, error: complaintError } =
+      await authenticatedSupabase
+        .from("complaints")
+        .select("id")
+        .eq("id", id)
+        .eq("user_id", req.user.id)
+        .maybeSingle();
+
+    if (complaintError) {
+      console.error(
+        "Complaint ownership check error:",
+        complaintError
+      );
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to verify complaint access.",
+      });
+    }
+
+    if (!complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found.",
+      });
+    }
+
+    const { data: history, error: historyError } =
+      await authenticatedSupabase
+        .from("complaint_status_history")
+        .select("*")
+        .eq("complaint_id", id)
+        .order("created_at", { ascending: true });
+
+    if (historyError) {
+      console.error(
+        "Get complaint status history error:",
+        historyError
+      );
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch complaint status history.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      history: history || [],
+    });
+  } catch (error) {
+    console.error(
+      "Get complaint status history error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching status history.",
+    });
+  }
+};
+
 // Get complaint statistics for the logged-in citizen
 export const getComplaintStats = async (req, res) => {
   try {
