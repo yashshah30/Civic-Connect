@@ -1,21 +1,25 @@
 import { createClient } from "@supabase/supabase-js";
 
+// Create authenticated Supabase client
+const getSupabase = (req) =>
+  createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_KEY,
+    {
+      global: {
+        headers: {
+          Authorization: `Bearer ${req.user.accessToken}`,
+        },
+      },
+    }
+  );
+
 // Get notifications for the logged-in citizen
 export const getNotifications = async (req, res) => {
   try {
-    const authenticatedSupabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${req.user.accessToken}`,
-          },
-        },
-      }
-    );
+    const supabase = getSupabase(req);
 
-    const { data: notifications, error } = await authenticatedSupabase
+    const { data: notifications, error } = await supabase
       .from("notifications")
       .select("*")
       .eq("user_id", req.user.id)
@@ -45,45 +49,31 @@ export const getNotifications = async (req, res) => {
 };
 
 // Mark one notification as read
-export const markNotificationAsRead = async (req, res) => {
+export const markNotificationRead = async (req, res) => {
   try {
-    const authenticatedSupabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${req.user.accessToken}`,
-          },
-        },
-      }
-    );
+    const supabase = getSupabase(req);
 
-    const { id } = req.params;
-
-    const { data: notification, error } = await authenticatedSupabase
+    const { data, error } = await supabase
       .from("notifications")
-      .update({ is_read: true })
-      .eq("id", id)
+      .update({ read: true })
+      .eq("id", req.params.id)
       .eq("user_id", req.user.id)
-      .select()
+      .select("id, message, complaint_id, read, created_at")
       .single();
 
     if (error) {
-      console.error("Mark notification as read error:", error);
-
-      return res.status(400).json({
+      return res.status(404).json({
         success: false,
-        message: error.message,
+        message: "Notification not found",
       });
     }
 
     return res.json({
       success: true,
-      notification,
+      notification: data,
     });
   } catch (error) {
-    console.error("Mark notification as read error:", error);
+    console.error("Mark notification read error:", error);
 
     return res.status(500).json({
       success: false,
@@ -93,40 +83,26 @@ export const markNotificationAsRead = async (req, res) => {
 };
 
 // Mark all notifications as read
-export const markAllNotificationsAsRead = async (req, res) => {
+export const markAllNotificationsRead = async (req, res) => {
   try {
-    const authenticatedSupabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${req.user.accessToken}`,
-          },
-        },
-      }
-    );
+    const supabase = getSupabase(req);
 
-    const { error } = await authenticatedSupabase
+    const { error } = await supabase
       .from("notifications")
-      .update({ is_read: true })
-      .eq("user_id", req.user.id);
+      .update({ read: true })
+      .eq("user_id", req.user.id)
+      .eq("read", false);
 
     if (error) {
-      console.error("Mark all notifications as read error:", error);
-
-      return res.status(400).json({
+      return res.status(500).json({
         success: false,
         message: error.message,
       });
     }
 
-    return res.json({
-      success: true,
-      message: "All notifications marked as read",
-    });
+    return res.json({ success: true });
   } catch (error) {
-    console.error("Mark all notifications as read error:", error);
+    console.error("Mark all notifications read error:", error);
 
     return res.status(500).json({
       success: false,
@@ -136,38 +112,23 @@ export const markAllNotificationsAsRead = async (req, res) => {
 };
 
 // Clear all notifications
-export const clearAllNotifications = async (req, res) => {
+export const clearNotifications = async (req, res) => {
   try {
-    const authenticatedSupabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${req.user.accessToken}`,
-          },
-        },
-      }
-    );
+    const supabase = getSupabase(req);
 
-    const { error } = await authenticatedSupabase
+    const { error } = await supabase
       .from("notifications")
       .delete()
       .eq("user_id", req.user.id);
 
     if (error) {
-      console.error("Clear notifications error:", error);
-
-      return res.status(400).json({
+      return res.status(500).json({
         success: false,
         message: error.message,
       });
     }
 
-    return res.json({
-      success: true,
-      message: "Notifications cleared successfully",
-    });
+    return res.json({ success: true });
   } catch (error) {
     console.error("Clear notifications error:", error);
 
