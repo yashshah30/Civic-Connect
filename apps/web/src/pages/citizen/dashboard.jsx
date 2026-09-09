@@ -6,6 +6,7 @@ import Navbar from "../../components/layout/navbar";
 import Button from "../../components/ui/button";
 import ComplaintStats from "../../components/citizen/ComplaintStats";
 import ComplaintCard from "../../components/citizen/ComplaintCard";
+import CivicAI from "../../components/citizen/CivicAI";
 
 export default function Dashboard() {
     const navigate = useNavigate();
@@ -28,7 +29,8 @@ export default function Dashboard() {
                     return;
                 }
 
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/complaints/my`,
+                const response = await fetch(
+                    `${import.meta.env.VITE_API_URL}/api/complaints/my`,
                     {
                         method: "GET",
                         headers: {
@@ -278,7 +280,9 @@ export default function Dashboard() {
                 </section>
 
             </main>
+
+            {/* Civic AI Assistant */}
+            <CivicAI />
         </div>
     );
 }
-
