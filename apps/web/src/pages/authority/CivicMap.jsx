@@ -10,8 +10,11 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-const API_URL =
-  "https://civic-connect-backend-6i78.onrender.com/api/complaints";
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://civic-connect-backend-6i78.onrender.com";
+
+const API_URL = `${API_BASE_URL}/api/complaints/authority`;
 
 const DEFAULT_CENTER = [23.2599, 77.4126];
 

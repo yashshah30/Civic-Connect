@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
     FiSearch,
     FiMapPin,
@@ -12,44 +12,95 @@ import Card from "../../components/ui/card";
 import StatusBadge from "../../components/citizen/StatusBadge";
 import StatusTimeline from "../../components/citizen/StatusTimeline";
 
-const mockComplaint = {
-    id: "CC-1024",
-    title: "Road Damage Near Main Road",
-    description:
-        "There is a large pothole near the main road which is causing difficulty for vehicles and pedestrians.",
-    category: "Road",
-    priority: "Medium",
-    status: "In Progress",
-    location: "Bhopal, Madhya Pradesh",
-    department: "Public Works Department",
-};
+
 
 const TrackComplaint = () => {
     const [complaintId, setComplaintId] = useState("");
-    const [complaint, setComplaint] = useState(null);
+    const [history, setHistory] = useState([]);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [complaint, setComplaint] = useState(null);
 
-    const handleTrack = (event) => {
-        event.preventDefault();
+    const handleTrack = async (event) => {
+    event.preventDefault();
 
-        setError("");
-        setComplaint(null);
+    setError("");
+    setComplaint(null);
+    setHistory([]);
 
-        const enteredId = complaintId.trim();
+    const enteredId = complaintId.trim();
 
-        if (!enteredId) {
-            setError("Please enter a Complaint ID.");
+    if (!enteredId) {
+        setError("Please enter a Complaint ID.");
+        return;
+    }
+
+    try {
+        setLoading(true);
+
+        const token = localStorage.getItem("access_token");
+
+        if (!token) {
+            setError("Please login again.");
             return;
         }
 
-        if (enteredId.toUpperCase() === mockComplaint.id) {
-            setComplaint(mockComplaint);
-        } else {
-            setError(
-                "Complaint not found. Try Complaint ID CC-1024."
-            );
+        const API_BASE_URL =
+            import.meta.env.VITE_API_URL ||
+            "https://civic-connect-backend-6i78.onrender.com";
+
+        // Fetch complaint details
+        const complaintResponse = await fetch(
+            `${API_BASE_URL}/api/complaints/${enteredId}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        const complaintData = await complaintResponse.json();
+
+        if (!complaintResponse.ok || !complaintData.success) {
+            setError("Complaint not found.");
+            return;
         }
-    };
+
+        const complaintResult = complaintData.complaint;
+
+        setComplaint({
+            ...complaintResult,
+            location:
+                complaintResult.address ||
+                "Location unavailable",
+            department:
+                complaintResult.department?.name ||
+                complaintResult.department ||
+                "Not assigned",
+        });
+
+        // Fetch status history
+        const historyResponse = await fetch(
+            `${API_BASE_URL}/api/complaints/${enteredId}/status-history`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            }
+        );
+
+        const historyData = await historyResponse.json();
+
+        if (historyResponse.ok && historyData.success) {
+            setHistory(historyData.history || []);
+        }
+    } catch (error) {
+        console.error("Track complaint error:", error);
+        setError("Unable to fetch complaint details.");
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
         <div className="min-h-screen bg-slate-50 px-4 py-6 sm:px-6 lg:px-8">
@@ -95,7 +146,7 @@ const TrackComplaint = () => {
                                 className="flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-6 py-3 font-semibold text-white transition hover:bg-blue-800"
                             >
                                 <FiSearch size={18} />
-                                Track Complaint
+                                {loading ? "Loading..." : "Track Complaint"}
                             </button>
                         </div>
 
@@ -252,6 +303,7 @@ const TrackComplaint = () => {
 
                             <StatusTimeline
                                 currentStatus={complaint.status}
+                                history={history}
                             />
                         </Card>
 
