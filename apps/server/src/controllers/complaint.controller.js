@@ -621,3 +621,214 @@ export const updateComplaint = async (req, res) => {
     });
   }
 };
+
+
+// Authority: create resolution proof
+export const createResolution = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      before_image_url,
+      after_image_url,
+      resolution_description,
+    } = req.body;
+
+    if (!resolution_description?.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Resolution description is required",
+      });
+    }
+
+    const authenticatedSupabase = getSupabase(req);
+
+    // Verify complaint exists
+    const { data: complaint, error: complaintError } =
+      await authenticatedSupabase
+        .from("complaints")
+        .select("id, status")
+        .eq("id", id)
+        .single();
+
+    if (complaintError || !complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found",
+      });
+    }
+
+    const { data: resolution, error: resolutionError } =
+      await authenticatedSupabase
+        .from("complaint_resolutions")
+        .insert({
+          complaint_id: id,
+          resolved_by: req.user.id,
+          before_image_url: before_image_url || null,
+          after_image_url: after_image_url || null,
+          resolution_description: resolution_description.trim(),
+        })
+        .select()
+        .single();
+
+    if (resolutionError) {
+      console.error("Create resolution error:", resolutionError);
+
+      return res.status(400).json({
+        success: false,
+        message: resolutionError.message,
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Resolution proof added successfully",
+      resolution,
+    });
+  } catch (error) {
+    console.error("Create resolution error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+// Citizen: get resolution proof
+export const getComplaintResolution = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const authenticatedSupabase = getSupabase(req);
+
+    // Verify complaint belongs to logged-in citizen
+    const { data: complaint, error: complaintError } =
+      await authenticatedSupabase
+        .from("complaints")
+        .select("id")
+        .eq("id", id)
+        .eq("user_id", req.user.id)
+        .maybeSingle();
+
+    if (complaintError || !complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found",
+      });
+    }
+
+    const { data: resolution, error: resolutionError } =
+      await authenticatedSupabase
+        .from("complaint_resolutions")
+        .select("*")
+        .eq("complaint_id", id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (resolutionError) {
+      console.error("Get resolution error:", resolutionError);
+
+      return res.status(500).json({
+        success: false,
+        message: "Failed to fetch resolution proof",
+      });
+    }
+
+    return res.json({
+      success: true,
+      resolution: resolution || null,
+    });
+  } catch (error) {
+    console.error("Get resolution error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+// Citizen: verify resolution
+export const createComplaintVerification = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { verification_status, comment } = req.body;
+
+    const allowedStatuses = [
+      "resolved",
+      "still_unresolved",
+    ];
+
+    if (!allowedStatuses.includes(verification_status)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Verification status must be resolved or still_unresolved",
+      });
+    }
+
+    const authenticatedSupabase = getSupabase(req);
+
+    // Verify complaint belongs to logged-in citizen
+    const { data: complaint, error: complaintError } =
+      await authenticatedSupabase
+        .from("complaints")
+        .select("id, status")
+        .eq("id", id)
+        .eq("user_id", req.user.id)
+        .maybeSingle();
+
+    if (complaintError || !complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found",
+      });
+    }
+
+    if (complaint.status !== "resolved") {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Complaint must be resolved before verification",
+      });
+    }
+
+    const { data: verification, error: verificationError } =
+      await authenticatedSupabase
+        .from("complaint_verifications")
+        .insert({
+          complaint_id: id,
+          citizen_id: req.user.id,
+          verification_status,
+          comment: comment?.trim() || null,
+        })
+        .select()
+        .single();
+
+    if (verificationError) {
+      console.error(
+        "Create verification error:",
+        verificationError
+      );
+
+      return res.status(400).json({
+        success: false,
+        message: verificationError.message,
+      });
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Complaint verification submitted successfully",
+      verification,
+    });
+  } catch (error) {
+    console.error("Create verification error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};

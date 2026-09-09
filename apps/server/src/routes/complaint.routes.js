@@ -11,6 +11,9 @@ import {
   getAuthorityComplaintById,
   updateComplaint,
   getComplaintStatusHistory,
+  createResolution,
+  getComplaintResolution,
+  createComplaintVerification,
 } from "../controllers/complaint.controller.js";
 
 import { authMiddleware } from "../middleware/auth.middleware.js";
@@ -94,6 +97,30 @@ router.get(
   authMiddleware,
   requireRole("citizen"),
   getComplaintStatusHistory
+);
+
+// Authority: add resolution proof
+router.post(
+  "/:id/resolution",
+  authMiddleware,
+  requireRole("authority"),
+  createResolution
+);
+
+// Citizen: get resolution proof
+router.get(
+  "/:id/resolution",
+  authMiddleware,
+  requireRole("citizen"),
+  getComplaintResolution
+);
+
+// Citizen: submit resolution verification
+router.post(
+  "/:id/verification",
+  authMiddleware,
+  requireRole("citizen"),
+  createComplaintVerification
 );
 
 // Authority: update complaint status/department

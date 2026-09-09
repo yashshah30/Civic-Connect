@@ -1,4 +1,5 @@
 import { supabase } from "../config/supabase.js";
+import { createClient } from "@supabase/supabase-js";
 
 export const authMiddleware = async (req, res, next) => {
   try {
@@ -44,11 +45,28 @@ export const authMiddleware = async (req, res, next) => {
     }
 
     // 5. Fetch profile safely using '*' to avoid missing-column errors
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle(); // maybeSingle() avoids throwing exception on empty match
+    const authenticatedSupabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_KEY,
+  {
+    global: {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    },
+  }
+);
+
+const { data: profile, error: profileError } =
+  await authenticatedSupabase
+    .from("profiles")
+    .select("*")
+    .eq("id", user.id)
+    .maybeSingle();
+
+if (profileError) {
+  console.error("Profile fetch error:", profileError);
+} // maybeSingle() avoids throwing exception on empty match
 
     // If profile is missing, fallback gracefully instead of breaking auth
     const userRole = profile?.role || "citizen";
