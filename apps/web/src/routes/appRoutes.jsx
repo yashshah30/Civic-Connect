@@ -10,8 +10,10 @@ import ResetPassword from "../pages/auth/ResetPassword";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
 // Citizen
+import Activity from "../pages/citizen/Activity";
+import TrackComplaint from "../pages/citizen/TrackComplaint";
+import NotificationPreferences from "../pages/citizen/NotificationPreferences";
 import ComplaintHistory from "../pages/citizen/ComplaintHistory";
-import CitizenAnalytics from "../pages/citizen/CitizenAnalytics";
 import Dashboard from "../pages/citizen/dashboard";
 import ReportComplaint from "../pages/citizen/ReportComplaint";
 import MyComplaints from "../pages/citizen/MyComplaints";
@@ -101,7 +103,7 @@ function AppRoutes() {
 
             <Route
               path="/citizen/activity"
-              element={<CitizenAnalytics />}
+              element={<Activity />}
             />
 
             <Route
@@ -112,6 +114,15 @@ function AppRoutes() {
             <Route
               path="/citizen/profile"
               element={<CitizenProfile />}
+            />
+            <Route
+            path="/citizen/track"
+            element={<TrackComplaint />}
+            />
+
+            <Route
+            path="/citizen/preferences"
+            element={<NotificationPreferences />}
             />
           </Route>
         </Route>

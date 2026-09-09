@@ -6,6 +6,9 @@ import {
     FiBell,
     FiLogOut,
     FiMapPin,
+    FiMap,
+    FiActivity,
+    FiSettings,
 } from "react-icons/fi";
 
 export default function CitizenSidebar({ onLogout }) {
@@ -28,9 +31,24 @@ export default function CitizenSidebar({ onLogout }) {
             icon: FiPlusCircle,
         },
         {
+            name: "Track Complaint",
+            path: "/citizen/track",
+            icon: FiMap,
+        },
+        {
+            name: "Activity",
+            path: "/citizen/activity",
+            icon: FiActivity,
+        },
+        {
             name: "Notifications",
             path: "/citizen/notifications",
             icon: FiBell,
+        },
+        {
+        name: "Notification Preferences",
+        path: "/citizen/preferences",
+        icon: FiSettings,
         },
     ];
 
