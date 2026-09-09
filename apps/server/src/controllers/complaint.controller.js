@@ -1,5 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 
+const getSupabase = (req) =>
+  createClient(
+    process.env.SUPABASE_URL,
+    process.env.SUPABASE_KEY,
+    {
+      global: {
+        headers: {
+          Authorization: `Bearer ${req.user.accessToken}`,
+        },
+      },
+    }
+  );
+
 // Create a new complaint
 export const createComplaint = async (req, res) => {
   try {
@@ -21,19 +34,8 @@ export const createComplaint = async (req, res) => {
       });
     }
 
-    const authenticatedSupabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${req.user.accessToken}`,
-          },
-        },
-      }
-    );
+    const authenticatedSupabase = getSupabase(req);
 
-    // 1. Create complaint
     const { data: complaint, error: complaintError } =
       await authenticatedSupabase
         .from("complaints")
@@ -61,7 +63,6 @@ export const createComplaint = async (req, res) => {
       });
     }
 
-    // 2. Upload complaint images
     const uploadedMedia = [];
 
     if (req.files && req.files.length > 0) {
@@ -84,7 +85,6 @@ export const createComplaint = async (req, res) => {
         if (uploadError) {
           console.error("Image upload error:", uploadError);
 
-          // Remove complaint if image upload fails
           await authenticatedSupabase
             .from("complaints")
             .delete()
@@ -96,7 +96,6 @@ export const createComplaint = async (req, res) => {
           });
         }
 
-        // 3. Get public URL
         const { data: publicUrlData } =
           authenticatedSupabase.storage
             .from("complaint-images")
@@ -104,7 +103,6 @@ export const createComplaint = async (req, res) => {
 
         const fileUrl = publicUrlData.publicUrl;
 
-        // 4. Save media information
         const { data: media, error: mediaError } =
           await authenticatedSupabase
             .from("complaint_media")
@@ -146,36 +144,26 @@ export const createComplaint = async (req, res) => {
   }
 };
 
-
 // Get complaints submitted by the logged-in citizen
 export const getMyComplaints = async (req, res) => {
   try {
-    const authenticatedSupabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${req.user.accessToken}`,
-          },
-        },
-      }
-    );
+    const authenticatedSupabase = getSupabase(req);
 
-    const { data: complaints, error } = await authenticatedSupabase
-      .from("complaints")
-      .select(`
-        *,
-        complaint_media (
-          id,
-          file_url,
-          file_type,
-          file_name,
-          created_at
-        )
-      `)
-      .eq("user_id", req.user.id)
-      .order("created_at", { ascending: false });
+    const { data: complaints, error } =
+      await authenticatedSupabase
+        .from("complaints")
+        .select(`
+          *,
+          complaint_media (
+            id,
+            file_url,
+            file_type,
+            file_name,
+            created_at
+          )
+        `)
+        .eq("user_id", req.user.id)
+        .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Get my complaints error:", error);
@@ -200,7 +188,6 @@ export const getMyComplaints = async (req, res) => {
   }
 };
 
-
 // Get a single complaint belonging to the logged-in citizen
 export const getComplaintById = async (req, res) => {
   try {
@@ -213,37 +200,26 @@ export const getComplaintById = async (req, res) => {
       });
     }
 
-    const authenticatedSupabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${req.user.accessToken}`,
-          },
-        },
-      }
-    );
+    const authenticatedSupabase = getSupabase(req);
 
-    const { data: complaint, error } = await authenticatedSupabase
-      .from("complaints")
-      .select(`
-        *,
-        complaint_media (
-          id,
-          file_url,
-          file_type,
-          file_name,
-          created_at
-        )
-      `)
-      .eq("id", id)
-      .eq("user_id", req.user.id)
-      .single();
+    const { data: complaint, error } =
+      await authenticatedSupabase
+        .from("complaints")
+        .select(`
+          *,
+          complaint_media (
+            id,
+            file_url,
+            file_type,
+            file_name,
+            created_at
+          )
+        `)
+        .eq("id", id)
+        .eq("user_id", req.user.id)
+        .single();
 
     if (error || !complaint) {
-      console.error("Get complaint by ID error:", error);
-
       return res.status(404).json({
         success: false,
         message: "Complaint not found",
@@ -267,22 +243,13 @@ export const getComplaintById = async (req, res) => {
 // Get complaint statistics for the logged-in citizen
 export const getComplaintStats = async (req, res) => {
   try {
-    const authenticatedSupabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${req.user.accessToken}`,
-          },
-        },
-      }
-    );
+    const authenticatedSupabase = getSupabase(req);
 
-    const { data: complaints, error } = await authenticatedSupabase
-      .from("complaints")
-      .select("status")
-      .eq("user_id", req.user.id);
+    const { data: complaints, error } =
+      await authenticatedSupabase
+        .from("complaints")
+        .select("status")
+        .eq("user_id", req.user.id);
 
     if (error) {
       console.error("Get complaint stats error:", error);
@@ -348,19 +315,8 @@ export const updateComplaintStatus = async (req, res) => {
       });
     }
 
-    const authenticatedSupabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${req.user.accessToken}`,
-          },
-        },
-      }
-    );
+    const authenticatedSupabase = getSupabase(req);
 
-    // Get complaint first
     const { data: complaint, error: complaintError } =
       await authenticatedSupabase
         .from("complaints")
@@ -377,13 +333,10 @@ export const updateComplaintStatus = async (req, res) => {
 
     const oldStatus = complaint.status;
 
-    // Update complaint status
     const { data: updatedComplaint, error: updateError } =
       await authenticatedSupabase
         .from("complaints")
-        .update({
-          status,
-        })
+        .update({ status })
         .eq("id", id)
         .select()
         .single();
@@ -397,35 +350,35 @@ export const updateComplaintStatus = async (req, res) => {
       });
     }
 
-    // Add status history
-    const { error: historyError } = await authenticatedSupabase
-      .from("complaint_status_history")
-      .insert({
-        complaint_id: id,
-        old_status: oldStatus,
-        new_status: status,
-        changed_by: req.user.id,
-        comment: comment || null,
-      });
+    const { error: historyError } =
+      await authenticatedSupabase
+        .from("complaint_status_history")
+        .insert({
+          complaint_id: id,
+          old_status: oldStatus,
+          new_status: status,
+          changed_by: req.user.id,
+          comment: comment || null,
+        });
 
     if (historyError) {
       console.error("Status history error:", historyError);
     }
 
-    // Create notification for citizen
-    const { error: notificationError } = await authenticatedSupabase
-      .from("notifications")
-      .insert({
-        user_id: complaint.user_id,
-        complaint_id: id,
-        title: "Complaint Status Updated",
-        message: `Your complaint "${complaint.title}" status changed to ${status.replace(
-          "_",
-          " "
-        )}.`,
-        type: "status_update",
-        is_read: false,
-      });
+    const { error: notificationError } =
+      await authenticatedSupabase
+        .from("notifications")
+        .insert({
+          user_id: complaint.user_id,
+          complaint_id: id,
+          title: "Complaint Status Updated",
+          message: `Your complaint "${complaint.title}" status changed to ${status.replace(
+            "_",
+            " "
+          )}.`,
+          type: "status_update",
+          is_read: false,
+        });
 
     if (notificationError) {
       console.error("Notification error:", notificationError);
@@ -446,27 +399,19 @@ export const updateComplaintStatus = async (req, res) => {
   }
 };
 
+// Get all complaints for authority
 export const getAuthorityComplaints = async (req, res) => {
   try {
-    const authenticatedSupabase = createClient(
-      process.env.SUPABASE_URL,
-      process.env.SUPABASE_KEY,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${req.user.accessToken}`,
-          },
-        },
-      }
-    );
+    const authenticatedSupabase = getSupabase(req);
 
-    const { data: complaints, error } = await authenticatedSupabase
-      .from("complaints")
-      .select(`
-        *,
-        complaint_media (*)
-      `)
-      .order("created_at", { ascending: false });
+    const { data: complaints, error } =
+      await authenticatedSupabase
+        .from("complaints")
+        .select(`
+          *,
+          complaint_media (*)
+        `)
+        .order("created_at", { ascending: false });
 
     if (error) {
       console.error("Get authority complaints error:", error);
@@ -483,6 +428,123 @@ export const getAuthorityComplaints = async (req, res) => {
     });
   } catch (error) {
     console.error("Get authority complaints error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+// Get one complaint for authority
+export const getAuthorityComplaintById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const authenticatedSupabase = getSupabase(req);
+
+    const { data: complaint, error } =
+      await authenticatedSupabase
+        .from("complaints")
+        .select(`
+          *,
+          complaint_media (*)
+        `)
+        .eq("id", id)
+        .single();
+
+    if (error || !complaint) {
+      return res.status(404).json({
+        success: false,
+        message: "Complaint not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      complaint,
+    });
+  } catch (error) {
+    console.error("Get authority complaint error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+    });
+  }
+};
+
+// Gautam compatibility: get all complaints
+export const getComplaints = getAuthorityComplaints;
+
+// Gautam compatibility: get citizen complaints
+export const getCitizenComplaints = getMyComplaints;
+
+// Gautam compatibility: get citizen complaint by ID
+export const getCitizenComplaintById = getComplaintById;
+
+// Gautam compatibility: update complaint
+export const updateComplaint = async (req, res) => {
+  try {
+    const { status, department_id } = req.body;
+
+    if (!status && department_id === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "Status or department is required",
+      });
+    }
+
+    const allowedStatuses = [
+      "submitted",
+      "under_review",
+      "assigned",
+      "in_progress",
+      "resolved",
+      "rejected",
+    ];
+
+    if (status && !allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid complaint status",
+      });
+    }
+
+    const authenticatedSupabase = getSupabase(req);
+
+    const updates = {};
+
+    if (status) {
+      updates.status = status;
+    }
+
+    if (department_id !== undefined) {
+      updates.department_id = department_id || null;
+    }
+
+    const { data, error } =
+      await authenticatedSupabase
+        .from("complaints")
+        .update(updates)
+        .eq("id", req.params.id)
+        .select()
+        .single();
+
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Complaint updated successfully",
+      complaint: data,
+    });
+  } catch (error) {
+    console.error("Update complaint error:", error);
 
     return res.status(500).json({
       success: false,

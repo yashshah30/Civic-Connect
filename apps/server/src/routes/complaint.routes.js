@@ -8,13 +8,14 @@ import {
   getComplaintStats,
   updateComplaintStatus,
   getAuthorityComplaints,
+  getAuthorityComplaintById,
+  updateComplaint,
 } from "../controllers/complaint.controller.js";
 
 import { authMiddleware } from "../middleware/auth.middleware.js";
 import { requireRole } from "../middleware/role.middleware.js";
 
 const router = express.Router();
-
 
 // Multer configuration for complaint images
 const upload = multer({
@@ -34,7 +35,6 @@ const upload = multer({
   },
 });
 
-
 // Debug authentication
 router.get(
   "/debug-auth",
@@ -48,9 +48,7 @@ router.get(
   }
 );
 
-
-// Get complaints belonging to logged-in citizen
-
+// Authority: get all complaints
 router.get(
   "/authority",
   authMiddleware,
@@ -58,6 +56,15 @@ router.get(
   getAuthorityComplaints
 );
 
+// Authority: get one complaint
+router.get(
+  "/authority/:id",
+  authMiddleware,
+  requireRole("authority"),
+  getAuthorityComplaintById
+);
+
+// Citizen: get own complaints
 router.get(
   "/my",
   authMiddleware,
@@ -65,6 +72,7 @@ router.get(
   getMyComplaints
 );
 
+// Citizen: complaint statistics
 router.get(
   "/stats",
   authMiddleware,
@@ -72,6 +80,7 @@ router.get(
   getComplaintStats
 );
 
+// Authority: update complaint status
 router.patch(
   "/:id/status",
   authMiddleware,
@@ -79,6 +88,15 @@ router.patch(
   updateComplaintStatus
 );
 
+// Authority: update complaint status/department
+router.patch(
+  "/:id",
+  authMiddleware,
+  requireRole("authority"),
+  updateComplaint
+);
+
+// Citizen: get one own complaint
 router.get(
   "/:id",
   authMiddleware,
@@ -86,7 +104,7 @@ router.get(
   getComplaintById
 );
 
-// Create complaint
+// Citizen: create complaint
 router.post(
   "/",
   authMiddleware,
@@ -94,6 +112,5 @@ router.post(
   upload.array("images", 5),
   createComplaint
 );
-
 
 export default router;

@@ -1,53 +1,150 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import AssignComplaintModal from "../../components/authority/AssignComplaintModal";
 
-const complaint = {
-  id: "CC-001",
-  title: "Road pothole near main market",
-  description:
-    "There is a large pothole near the main market road. It is causing difficulty for vehicles and can be dangerous for pedestrians.",
-  category: "Road",
-  citizen: "Citizen #102",
-  location: "Bhopal, Madhya Pradesh",
-  priority: "High",
-  status: "Under Review",
-  date: "20 Aug 2026",
-  image:
-    "https://images.unsplash.com/photo-1515165562835-c4c9b5a0f8f1?auto=format&fit=crop&w=900&q=80",
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://civic-connect-backend-6i78.onrender.com";
+
+const formatStatus = (status) => {
+  if (!status) {
+    return "Unknown";
+  }
+
+  return status
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 };
 
-const timeline = [
-  {
-    status: "Submitted",
-    date: "20 Aug 2026, 09:15 AM",
-    description: "Complaint submitted by citizen.",
-  },
-  {
-    status: "Under Review",
-    date: "20 Aug 2026, 10:30 AM",
-    description: "Complaint reviewed by authority officer.",
-  },
-  {
-    status: "Assigned",
-    date: "Pending",
-    description: "Department assignment is pending.",
-  },
-  {
-    status: "In Progress",
-    date: "Pending",
-    description: "Work has not started yet.",
-  },
-  {
-    status: "Resolved",
-    date: "Pending",
-    description: "Complaint resolution is pending.",
-  },
-];
+const formatPriority = (priority) => {
+  if (!priority) {
+    return "Medium";
+  }
+
+  return priority.charAt(0).toUpperCase() + priority.slice(1);
+};
+
+const formatDate = (date) => {
+  if (!date) {
+    return "Date unavailable";
+  }
+
+  return new Date(date).toLocaleString();
+};
 
 export default function AuthorityComplaintDetails() {
   const { id } = useParams();
+
+  const [complaint, setComplaint] = useState(null);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetchComplaint = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const token = localStorage.getItem("access_token");
+
+      if (!token) {
+        throw new Error("Please log in again.");
+      }
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/complaints`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message || "Failed to load complaint."
+        );
+      }
+
+      const foundComplaint = (data.complaints || []).find(
+        (item) => item.id === id
+      );
+
+      if (!foundComplaint) {
+        throw new Error("Complaint not found.");
+      }
+
+      setComplaint(foundComplaint);
+    } catch (error) {
+      console.error("Fetch complaint error:", error);
+
+      setError(
+        error.message || "Failed to load complaint."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchComplaint();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50">
+        <p className="text-sm text-slate-500">
+          Loading complaint...
+        </p>
+      </div>
+    );
+  }
+
+  if (error || !complaint) {
+    return (
+      <div className="min-h-screen bg-slate-50">
+        <nav className="border-b bg-white">
+          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+            <div>
+              <h1 className="text-xl font-bold text-blue-900">
+                Civic Connect
+              </h1>
+
+              <p className="text-xs text-slate-500">
+                Authority Portal
+              </p>
+            </div>
+
+            <Link
+              to="/authority/complaints"
+              className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Back to Complaints
+            </Link>
+          </div>
+        </nav>
+
+        <main className="mx-auto max-w-3xl px-4 py-12">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
+            <h2 className="text-lg font-semibold text-red-800">
+              Unable to load complaint
+            </h2>
+
+            <p className="mt-2 text-sm text-red-700">
+              {error || "Complaint not found."}
+            </p>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const priority = formatPriority(complaint.priority);
+  const status = complaint.status || "submitted";
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -93,13 +190,13 @@ export default function AuthorityComplaintDetails() {
                 {complaint.title}
               </h2>
 
-              <p className="mt-1 text-sm text-slate-500">
-                Complaint ID: {id}
+              <p className="mt-1 break-all text-sm text-slate-500">
+                Complaint ID: {complaint.id}
               </p>
             </div>
 
             <span className="w-fit rounded-full bg-orange-100 px-4 py-2 text-sm font-semibold text-orange-700">
-              {complaint.priority} Priority
+              {priority} Priority
             </span>
 
           </div>
@@ -125,7 +222,7 @@ export default function AuthorityComplaintDetails() {
                     Complaint ID
                   </p>
 
-                  <p className="mt-1 font-semibold text-slate-800">
+                  <p className="mt-1 break-all font-semibold text-slate-800">
                     {complaint.id}
                   </p>
                 </div>
@@ -146,7 +243,7 @@ export default function AuthorityComplaintDetails() {
                   </p>
 
                   <p className="mt-1 font-semibold text-slate-800">
-                    {complaint.date}
+                    {formatDate(complaint.created_at)}
                   </p>
                 </div>
 
@@ -156,8 +253,18 @@ export default function AuthorityComplaintDetails() {
                   </p>
 
                   <span className="mt-1 inline-block rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
-                    {complaint.status}
+                    {formatStatus(status)}
                   </span>
+                </div>
+
+                <div>
+                  <p className="text-sm text-slate-500">
+                    Department
+                  </p>
+
+                  <p className="mt-1 break-all font-semibold text-slate-800">
+                    {complaint.department_id || "Not assigned"}
+                  </p>
                 </div>
 
               </div>
@@ -176,29 +283,6 @@ export default function AuthorityComplaintDetails() {
 
             </div>
 
-            {/* Uploaded Image */}
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-
-              <h3 className="text-lg font-semibold text-slate-900">
-                Uploaded Image
-              </h3>
-
-              <div className="mt-4 overflow-hidden rounded-lg">
-
-                <img
-                  src={complaint.image}
-                  alt="Complaint"
-                  className="h-72 w-full object-cover"
-                />
-
-              </div>
-
-              <p className="mt-2 text-xs text-slate-500">
-                Image uploaded by citizen with the complaint.
-              </p>
-
-            </div>
-
             {/* Location */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
 
@@ -207,7 +291,7 @@ export default function AuthorityComplaintDetails() {
               </h3>
 
               <p className="mt-3 text-slate-700">
-                {complaint.location}
+                {complaint.address || "Address not provided"}
               </p>
 
               <div className="mt-4 flex h-48 items-center justify-center rounded-lg bg-slate-100">
@@ -248,11 +332,11 @@ export default function AuthorityComplaintDetails() {
 
                 <div>
                   <p className="text-sm text-slate-500">
-                    Citizen
+                    Citizen ID
                   </p>
 
-                  <p className="mt-1 font-semibold text-slate-800">
-                    {complaint.citizen}
+                  <p className="mt-1 break-all font-semibold text-slate-800">
+                    {complaint.user_id}
                   </p>
                 </div>
 
@@ -262,7 +346,7 @@ export default function AuthorityComplaintDetails() {
                   </p>
 
                   <p className="mt-1 text-slate-700">
-                    {complaint.location}
+                    {complaint.address || "Not provided"}
                   </p>
                 </div>
 
@@ -289,14 +373,16 @@ export default function AuthorityComplaintDetails() {
 
                 <button
                   type="button"
-                  className="w-full rounded-lg border border-blue-900 px-4 py-3 text-sm font-medium text-blue-900 hover:bg-blue-50"
+                  disabled
+                  className="w-full cursor-not-allowed rounded-lg border border-blue-900 px-4 py-3 text-sm font-medium text-blue-900 opacity-50"
                 >
                   Change Status
                 </button>
 
                 <button
                   type="button"
-                  className="w-full rounded-lg border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                  disabled
+                  className="w-full cursor-not-allowed rounded-lg border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 opacity-50"
                 >
                   Add Comment
                 </button>
@@ -318,54 +404,29 @@ export default function AuthorityComplaintDetails() {
 
           <div className="mt-6">
 
-            {timeline.map((item, index) => (
+            <div className="flex gap-4">
 
-              <div
-                key={item.status}
-                className="flex gap-4"
-              >
-
-                {/* Timeline Line */}
-                <div className="flex flex-col items-center">
-
-                  <div
-                    className={`h-4 w-4 rounded-full ${
-                      index <= 1
-                        ? "bg-blue-800"
-                        : "bg-slate-300"
-                    }`}
-                  />
-
-                  {index !== timeline.length - 1 && (
-                    <div className="h-16 w-px bg-slate-200" />
-                  )}
-
-                </div>
-
-                {/* Timeline Content */}
-                <div className="pb-8">
-
-                  <div className="flex flex-wrap items-center gap-2">
-
-                    <h4 className="font-semibold text-slate-800">
-                      {item.status}
-                    </h4>
-
-                    <span className="text-xs text-slate-400">
-                      {item.date}
-                    </span>
-
-                  </div>
-
-                  <p className="mt-1 text-sm text-slate-500">
-                    {item.description}
-                  </p>
-
-                </div>
-
+              <div className="flex flex-col items-center">
+                <div className="h-4 w-4 rounded-full bg-blue-800" />
               </div>
 
-            ))}
+              <div className="pb-8">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="font-semibold text-slate-800">
+                    {formatStatus(status)}
+                  </h4>
+
+                  <span className="text-xs text-slate-400">
+                    {formatDate(complaint.updated_at)}
+                  </span>
+                </div>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Current complaint status.
+                </p>
+              </div>
+
+            </div>
 
           </div>
 
@@ -375,7 +436,11 @@ export default function AuthorityComplaintDetails() {
 
       <AssignComplaintModal
         isOpen={isAssignModalOpen}
+        complaintId={complaint.id}
         onClose={() => setIsAssignModalOpen(false)}
+        onAssigned={(updatedComplaint) => {
+          setComplaint(updatedComplaint);
+        }}
       />
 
     </div>

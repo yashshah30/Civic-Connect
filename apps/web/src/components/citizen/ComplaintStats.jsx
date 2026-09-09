@@ -14,7 +14,7 @@ const ComplaintStats = ({ stats }) => {
             icon: <FiFileText size={24} />,
         },
         {
-            title: "Submitted",
+            title: "Pending",
             value: stats.submitted,
             icon: <FiSend size={24} />,
         },

@@ -6,22 +6,19 @@ import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
 import ForgotPassword from "../pages/auth/ForgotPassword";
 import OTPVerification from "../pages/auth/OTPVerification";
-
 import ResetPassword from "../pages/auth/ResetPassword";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
 
-
 // Citizen
+import ComplaintHistory from "../pages/citizen/ComplaintHistory";
+import CitizenAnalytics from "../pages/citizen/CitizenAnalytics";
 import Dashboard from "../pages/citizen/dashboard";
 import ReportComplaint from "../pages/citizen/ReportComplaint";
 import MyComplaints from "../pages/citizen/MyComplaints";
 import ComplaintDetails from "../pages/citizen/ComplaintDetails";
 import Notifications from "../pages/citizen/Notifications";
-import ComplaintHistory from "../pages/citizen/ComplaintHistory";
-import CitizenAnalytics from "../pages/citizen/CitizenAnalytics";
 import CitizenLayout from "../components/citizen/CitizenLayout";
 import CitizenProfile from "../pages/citizen/Profile";
-
 
 // Authority
 import AuthorityDashboard from "../pages/authority/AuthorityDashboard";
@@ -36,12 +33,11 @@ function AppRoutes() {
   return (
     <BrowserRouter>
       <Routes>
-
         {/* Default */}
         <Route
-  path="/"
-  element={<Navigate to="/landing" replace />}
-/>
+          path="/"
+          element={<Navigate to="/landing" replace />}
+        />
 
         {/* Landing */}
         <Route
@@ -75,26 +71,51 @@ function AppRoutes() {
           element={<OTPVerification />}
         />
 
-
+        {/* Citizen */}
         <Route element={<ProtectedRoute />}>
-         <Route element={<CitizenLayout />}>
-           <Route path="/citizen/dashboard" element={<Dashboard />} />
+          <Route element={<CitizenLayout />}>
+            <Route
+              path="/citizen/dashboard"
+              element={<Dashboard />}
+            />
 
-           <Route path="/citizen/report" element={<ReportComplaint />} />
+            <Route
+              path="/citizen/report"
+              element={<ReportComplaint />}
+            />
 
-           <Route path="/citizen/complaints" element={<MyComplaints />} />
+            <Route
+              path="/citizen/complaints"
+              element={<MyComplaints />}
+            />
 
-           <Route
+            <Route
               path="/citizen/complaints/:id"
               element={<ComplaintDetails />}
-           />
+            />
 
-           <Route
+            <Route
               path="/citizen/notifications"
-             element={<Notifications />}
-           />
-         </Route>
+              element={<Notifications />}
+            />
+
+            <Route
+              path="/citizen/activity"
+              element={<CitizenAnalytics />}
+            />
+
+            <Route
+              path="/citizen/history"
+              element={<ComplaintHistory />}
+            />
+
+            <Route
+              path="/citizen/profile"
+              element={<CitizenProfile />}
+            />
+          </Route>
         </Route>
+
         {/* Authority */}
         <Route
           path="/authority/dashboard"
@@ -106,8 +127,6 @@ function AppRoutes() {
           element={<AuthorityComplaints />}
         />
 
-        
-
         <Route
           path="/authority/complaints/:id"
           element={<AuthorityComplaintDetails />}
@@ -118,17 +137,11 @@ function AppRoutes() {
           element={<CivicMap />}
         />
 
-        <Route
-          path="/citizen/profile"
-          element={<CitizenProfile />}
-        />
-
         {/* 404 */}
         <Route
           path="*"
           element={<NotFound />}
         />
-
       </Routes>
     </BrowserRouter>
   );

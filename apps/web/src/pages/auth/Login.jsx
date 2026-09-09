@@ -40,21 +40,23 @@ export default function Login() {
     try {
       setLoading(true);
 
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("user");
+localStorage.removeItem("access_token");
+localStorage.removeItem("user");
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/login`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            email: email.trim(),
-            password,
-          }),
-        }
-      );
+const response = await fetch(
+  `${import.meta.env.VITE_API_URL}/api/auth/login`,
+  {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email: email.trim(),
+      password,
+    }),
+  }
+);
+        
 
       const data = await response.json();
 
@@ -189,4 +191,3 @@ export default function Login() {
     </>
   );
 }
-
