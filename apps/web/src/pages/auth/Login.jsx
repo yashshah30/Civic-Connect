@@ -75,10 +75,15 @@ const response = await fetch(
       );
 
       toast.success("Login successful!");
+      console.log("Logged in user:", data.user);
 
       setTimeout(() => {
-        navigate("/citizen/dashboard");
-      }, 800);
+  if (data.user.role === "authority") {
+    navigate("/authority/dashboard");
+  } else {
+    navigate("/citizen/dashboard");
+  }
+}, 800);
     } catch (error) {
       console.error("Login error:", error);
       toast.error(error.message || "Login failed");

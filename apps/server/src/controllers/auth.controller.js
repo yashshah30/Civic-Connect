@@ -72,13 +72,26 @@ export const login = async (req, res) => {
       });
     }
 
+    const { data: profile, error: profileError } = await supabase
+  .from("profiles")
+  .select("*")
+  .eq("id", data.user.id)
+  .maybeSingle();
+
+if (profileError) {
+  console.error("Profile fetch error:", profileError);
+}
+
+const userRole = profile?.role || "citizen";
+
     return res.json({
       success: true,
       message: "Login successful",
       user: {
-        id: data.user.id,
-        email: data.user.email
-      },
+  id: data.user.id,
+  email: data.user.email,
+  role: userRole
+},
       session: data.session
     });
   } catch (error) {
