@@ -20,6 +20,7 @@ import Notifications from "../pages/citizen/Notifications";
 import ComplaintHistory from "../pages/citizen/ComplaintHistory";
 import CitizenAnalytics from "../pages/citizen/CitizenAnalytics";
 import CitizenLayout from "../components/citizen/CitizenLayout";
+import CitizenProfile from "../pages/citizen/Profile";
 
 
 // Authority
@@ -115,6 +116,11 @@ function AppRoutes() {
         <Route
           path="/authority/map"
           element={<CivicMap />}
+        />
+
+        <Route
+          path="/citizen/profile"
+          element={<CitizenProfile />}
         />
 
         {/* 404 */}
