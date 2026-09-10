@@ -40,47 +40,47 @@ export default function AuthorityComplaintDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const fetchComplaint = async () => {
-  try {
-    setLoading(true);
-    setError("");
+    const fetchComplaint = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-    const token = localStorage.getItem("access_token");
+      const token = localStorage.getItem("access_token");
 
-    if (!token) {
-      throw new Error("Please log in again.");
-    }
-
-    const response = await fetch(
-  `${API_BASE_URL}/api/complaints/authority/${id}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+      if (!token) {
+        throw new Error("Please log in again.");
       }
-    );
 
-    const data = await response.json();
-
-    if (!response.ok || !data.success) {
-      throw new Error(
-        data.message || "Failed to load complaint."
+      const response = await fetch(
+        `${API_BASE_URL}/api/complaints/authority/${id}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message || "Failed to load complaint."
+        );
+      }
+
+      setComplaint(data.complaint);
+    } catch (error) {
+      console.error("Fetch complaint error:", error);
+
+      setError(
+        error.message || "Failed to load complaint."
+      );
+    } finally {
+      setLoading(false);
     }
-
-    setComplaint(data.complaint);
-  } catch (error) {
-    console.error("Fetch complaint error:", error);
-
-    setError(
-      error.message || "Failed to load complaint."
-    );
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   useEffect(() => {
     fetchComplaint();
