@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { createNotification } from "../services/notification.service.js";
 
 export const createComplaint = async (req, res) => {
   try {
@@ -61,6 +62,14 @@ console.log("Complaint user ID:", req.user.id);
         message: error.message
       });
     }
+    await createNotification({
+      accessToken: req.user.accessToken,
+      userId: req.user.id,
+      complaintId: data.id,
+      title: "Complaint Submitted",
+      message: `Your complaint "${data.title}" has been submitted successfully.`,
+      type: "complaint_update",
+    });
 
     return res.status(201).json({
       success: true,
