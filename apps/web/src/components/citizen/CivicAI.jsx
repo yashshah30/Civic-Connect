@@ -1,19 +1,75 @@
 import { useState } from "react";
-import { FiMessageCircle, FiSend, FiX, FiCpu } from "react-icons/fi";
+import {
+  FiMessageCircle,
+  FiSend,
+  FiX,
+  FiCpu,
+} from "react-icons/fi";
 
 const suggestedQuestions = [
   "How do I raise a complaint?",
   "Track my complaint",
   "What is the status of my complaint?",
-  "Report a civic issue",
+  "What does In Progress mean?",
+  "How can I contact the authority?",
 ];
+
+const getBotResponse = (question) => {
+  const q = question.toLowerCase();
+
+  // Track and status questions
+  if (
+    q.includes("track") ||
+    q.includes("status") ||
+    q.includes("what is my complaint status")
+  ) {
+    return "You can check your complaint status from the My Complaints section. Your complaint will show its current status, such as Pending, In Progress, or Resolved.";
+  }
+
+  // In Progress explanation
+  if (
+    q.includes("in progress") ||
+    q.includes("meaning")
+  ) {
+    return "Your complaint has been assigned and the concerned authority is currently working on it.";
+  }
+
+  // Contact authority
+  if (
+    q.includes("contact") ||
+    q.includes("authority")
+  ) {
+    return "Please use the authority contact information provided by Civic Connect for your concerned department.";
+  }
+
+  // Raise complaint
+  if (
+    q.includes("raise") ||
+    q.includes("register") ||
+    q.includes("file")
+  ) {
+    return "Go to Raise Complaint, select the issue category, provide a description, location and image, then submit your complaint.";
+  }
+
+  // Report civic issue / pothole
+  if (
+    q.includes("pothole") ||
+    q.includes("civic issue") ||
+    q.includes("report")
+  ) {
+    return "Go to Raise Complaint, select the issue category, provide a description, location and image, then submit your complaint.";
+  }
+
+  // Default response
+  return "I can help you with raising complaints, tracking complaint status, understanding complaint statuses, and contacting the concerned authority.";
+};
 
 export default function CivicAI() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
+
   const [messages, setMessages] = useState([
     {
-      id: 1,
       sender: "bot",
       text: "Hi! How can I help you?",
     },
@@ -25,19 +81,17 @@ export default function CivicAI() {
     if (!trimmedMessage) return;
 
     const userMessage = {
-      id: Date.now(),
       sender: "user",
       text: trimmedMessage,
     };
 
     const botMessage = {
-      id: Date.now() + 1,
       sender: "bot",
-      text: "I'm here to help. AI assistance will be connected soon.",
+      text: getBotResponse(trimmedMessage),
     };
 
-    setMessages((previous) => [
-      ...previous,
+    setMessages((prev) => [
+      ...prev,
       userMessage,
       botMessage,
     ]);
@@ -46,12 +100,12 @@ export default function CivicAI() {
   };
 
   const handleSuggestion = (question) => {
-    setMessage(question);
+    sendMessage(question);
   };
 
-  const handleKeyDown = (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
       sendMessage();
     }
   };
@@ -60,52 +114,53 @@ export default function CivicAI() {
     <>
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-4 z-50 flex h-[520px] w-[calc(100vw-2rem)] max-w-md flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:right-6">
+        <div className="fixed bottom-24 right-4 z-50 flex h-[520px] w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
           
           {/* Header */}
-          <div className="flex items-center justify-between bg-blue-900 px-5 py-4 text-white">
+          <div className="flex items-center justify-between bg-blue-800 px-4 py-4 text-white">
             <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15">
-                <FiCpu className="text-xl" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
+                <FiCpu size={21} />
               </div>
 
               <div>
-                <h2 className="font-semibold">Civic Assistant</h2>
+                <h3 className="font-semibold">
+                  Civic Assistant
+                </h3>
                 <p className="text-xs text-blue-100">
-                  Your civic help assistant
+                  How can I help you?
                 </p>
               </div>
             </div>
 
             <button
-              type="button"
               onClick={() => setIsOpen(false)}
-              className="rounded-lg p-2 transition hover:bg-white/10"
-              aria-label="Close chatbot"
+              className="rounded-full p-2 transition hover:bg-white/20"
+              aria-label="Close Civic Assistant"
             >
-              <FiX className="text-xl" />
+              <FiX size={21} />
             </button>
           </div>
 
           {/* Messages */}
-          <div className="flex-1 space-y-4 overflow-y-auto bg-slate-50 p-4">
-            {messages.map((item) => (
+          <div className="flex-1 space-y-3 overflow-y-auto bg-gray-50 p-4">
+            {messages.map((msg, index) => (
               <div
-                key={item.id}
+                key={index}
                 className={`flex ${
-                  item.sender === "user"
+                  msg.sender === "user"
                     ? "justify-end"
                     : "justify-start"
                 }`}
               >
                 <div
-                  className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm ${
-                    item.sender === "user"
-                      ? "rounded-br-md bg-blue-900 text-white"
-                      : "rounded-bl-md bg-white text-slate-700 shadow-sm"
+                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                    msg.sender === "user"
+                      ? "rounded-br-md bg-blue-700 text-white"
+                      : "rounded-bl-md border border-gray-200 bg-white text-gray-800"
                   }`}
                 >
-                  {item.text}
+                  {msg.text}
                 </div>
               </div>
             ))}
@@ -113,7 +168,7 @@ export default function CivicAI() {
             {/* Suggested Questions */}
             {messages.length === 1 && (
               <div className="pt-2">
-                <p className="mb-2 text-xs font-semibold text-slate-500">
+                <p className="mb-2 text-xs font-medium text-gray-500">
                   Suggested questions
                 </p>
 
@@ -121,9 +176,8 @@ export default function CivicAI() {
                   {suggestedQuestions.map((question) => (
                     <button
                       key={question}
-                      type="button"
                       onClick={() => handleSuggestion(question)}
-                      className="block w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm text-slate-700 transition hover:border-blue-300 hover:bg-blue-50"
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-left text-sm text-gray-700 transition hover:border-blue-300 hover:bg-blue-50"
                     >
                       {question}
                     </button>
@@ -134,40 +188,42 @@ export default function CivicAI() {
           </div>
 
           {/* Input */}
-          <div className="border-t border-slate-200 bg-white p-3">
-            <div className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-3 py-2 focus-within:border-blue-500">
-              <input
-                type="text"
+          <div className="border-t border-gray-200 bg-white p-3">
+            <div className="flex items-end gap-2">
+              <textarea
                 value={message}
-                onChange={(event) => setMessage(event.target.value)}
+                onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Type your message..."
-                className="min-w-0 flex-1 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                rows={1}
+                className="max-h-24 min-h-[42px] flex-1 resize-none rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
 
               <button
-                type="button"
                 onClick={() => sendMessage()}
                 disabled={!message.trim()}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-900 text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-40"
+                className="flex h-[42px] w-[42px] items-center justify-center rounded-xl bg-blue-700 text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Send message"
               >
-                <FiSend />
+                <FiSend size={18} />
               </button>
             </div>
+
+            <p className="mt-1.5 text-center text-[10px] text-gray-400">
+              Civic Assistant
+            </p>
           </div>
         </div>
       )}
 
-      {/* Floating Civic AI Button */}
+      {/* Floating Button */}
       {!isOpen && (
         <button
-          type="button"
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-full bg-blue-900 px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:bg-blue-800 hover:shadow-2xl sm:right-6"
-          aria-label="Open Civic AI Assistant"
+          className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full bg-blue-800 px-5 py-3.5 text-sm font-semibold text-white shadow-lg transition hover:bg-blue-900 hover:shadow-xl"
+          aria-label="Open Civic Assistant"
         >
-          <FiMessageCircle className="text-xl" />
+          <FiMessageCircle size={20} />
           <span>Civic AI</span>
         </button>
       )}
