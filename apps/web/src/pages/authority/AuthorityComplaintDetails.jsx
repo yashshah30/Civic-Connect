@@ -41,54 +41,46 @@ export default function AuthorityComplaintDetails() {
   const [error, setError] = useState("");
 
   const fetchComplaint = async () => {
-    try {
-      setLoading(true);
-      setError("");
+  try {
+    setLoading(true);
+    setError("");
 
-      const token = localStorage.getItem("access_token");
+    const token = localStorage.getItem("access_token");
 
-      if (!token) {
-        throw new Error("Please log in again.");
-      }
-
-      const response = await fetch(
-        `${API_BASE_URL}/api/complaints`,
-        {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const data = await response.json();
-
-      if (!response.ok || !data.success) {
-        throw new Error(
-          data.message || "Failed to load complaint."
-        );
-      }
-
-      const foundComplaint = (data.complaints || []).find(
-        (item) => item.id === id
-      );
-
-      if (!foundComplaint) {
-        throw new Error("Complaint not found.");
-      }
-
-      setComplaint(foundComplaint);
-    } catch (error) {
-      console.error("Fetch complaint error:", error);
-
-      setError(
-        error.message || "Failed to load complaint."
-      );
-    } finally {
-      setLoading(false);
+    if (!token) {
+      throw new Error("Please log in again.");
     }
-  };
+
+    const response = await fetch(
+  `${API_BASE_URL}/api/complaints/authority/${id}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.message || "Failed to load complaint."
+      );
+    }
+
+    setComplaint(data.complaint);
+  } catch (error) {
+    console.error("Fetch complaint error:", error);
+
+    setError(
+      error.message || "Failed to load complaint."
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     fetchComplaint();
