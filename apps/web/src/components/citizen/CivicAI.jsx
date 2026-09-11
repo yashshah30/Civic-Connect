@@ -14,16 +14,80 @@ const suggestedQuestions = [
   "How can I contact the authority?",
 ];
 
-const getBotResponse = (question) => {
+const getBotResponse = async (question) => {
   const q = question.toLowerCase();
 
-  // Track and status questions
+  // Real complaint status from backend
   if (
     q.includes("track") ||
     q.includes("status") ||
-    q.includes("what is my complaint status")
+    q.includes("where is my complaint")
   ) {
-    return "You can check your complaint status from the My Complaints section. Your complaint will show its current status, such as Pending, In Progress, or Resolved.";
+    try {
+      const accessToken = localStorage.getItem("access_token");
+
+      if (!accessToken) {
+        return "Please log in to check your complaint status.";
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_API_URL}/api/complaints/my`,
+        {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        return (
+          data.message ||
+          "I couldn't retrieve your complaint status right now."
+        );
+      }
+
+      const complaints = data.complaints || [];
+
+      if (complaints.length === 0) {
+        return "You don't have any complaints yet. You can raise a complaint from the Raise Complaint section.";
+      }
+
+      // One complaint
+      if (complaints.length === 1) {
+        const complaint = complaints[0];
+
+        const status = complaint.status
+          ? complaint.status
+              .replace(/_/g, " ")
+              .replace(/\b\w/g, (letter) => letter.toUpperCase())
+          : "Unknown";
+
+        return `Your complaint "${complaint.title}" is currently ${status}.`;
+      }
+
+      // Multiple complaints
+      const complaintList = complaints
+        .slice(0, 5)
+        .map((complaint, index) => {
+          const status = complaint.status
+            ? complaint.status
+                .replace(/_/g, " ")
+                .replace(/\b\w/g, (letter) => letter.toUpperCase())
+            : "Unknown";
+
+          return `${index + 1}. ${complaint.title} — ${status}`;
+        })
+        .join("\n");
+
+      return `Here are your recent complaint statuses:\n${complaintList}`;
+    } catch (error) {
+      console.error("Civic AI status error:", error);
+
+      return "I'm unable to connect to the complaint service right now. Please try again.";
+    }
   }
 
   // In Progress explanation
@@ -67,6 +131,7 @@ const getBotResponse = (question) => {
 export default function CivicAI() {
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const [messages, setMessages] = useState([
     {
@@ -75,28 +140,43 @@ export default function CivicAI() {
     },
   ]);
 
-  const sendMessage = (text = message) => {
+  const sendMessage = async (text = message) => {
     const trimmedMessage = text.trim();
 
-    if (!trimmedMessage) return;
+    if (!trimmedMessage || loading) return;
 
     const userMessage = {
       sender: "user",
       text: trimmedMessage,
     };
 
-    const botMessage = {
-      sender: "bot",
-      text: getBotResponse(trimmedMessage),
-    };
-
-    setMessages((prev) => [
-      ...prev,
-      userMessage,
-      botMessage,
-    ]);
-
+    setMessages((prev) => [...prev, userMessage]);
     setMessage("");
+    setLoading(true);
+
+    try {
+      const botResponse = await getBotResponse(trimmedMessage);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: botResponse,
+        },
+      ]);
+    } catch (error) {
+      console.error("Civic AI error:", error);
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          sender: "bot",
+          text: "Something went wrong. Please try again.",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSuggestion = (question) => {
@@ -115,7 +195,7 @@ export default function CivicAI() {
       {/* Chat Window */}
       {isOpen && (
         <div className="fixed bottom-24 right-4 z-50 flex h-[520px] w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
-          
+
           {/* Header */}
           <div className="flex items-center justify-between bg-blue-800 px-4 py-4 text-white">
             <div className="flex items-center gap-3">
@@ -127,6 +207,7 @@ export default function CivicAI() {
                 <h3 className="font-semibold">
                   Civic Assistant
                 </h3>
+
                 <p className="text-xs text-blue-100">
                   How can I help you?
                 </p>
@@ -154,7 +235,7 @@ export default function CivicAI() {
                 }`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                  className={`max-w-[85%] whitespace-pre-line rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                     msg.sender === "user"
                       ? "rounded-br-md bg-blue-700 text-white"
                       : "rounded-bl-md border border-gray-200 bg-white text-gray-800"
@@ -165,8 +246,17 @@ export default function CivicAI() {
               </div>
             ))}
 
+            {/* Loading */}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="rounded-2xl rounded-bl-md border border-gray-200 bg-white px-4 py-3 text-sm text-gray-500">
+                  Checking your complaints...
+                </div>
+              </div>
+            )}
+
             {/* Suggested Questions */}
-            {messages.length === 1 && (
+            {messages.length === 1 && !loading && (
               <div className="pt-2">
                 <p className="mb-2 text-xs font-medium text-gray-500">
                   Suggested questions
@@ -196,12 +286,13 @@ export default function CivicAI() {
                 onKeyDown={handleKeyDown}
                 placeholder="Type your message..."
                 rows={1}
-                className="max-h-24 min-h-[42px] flex-1 resize-none rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                disabled={loading}
+                className="max-h-24 min-h-[42px] flex-1 resize-none rounded-xl border border-gray-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100"
               />
 
               <button
                 onClick={() => sendMessage()}
-                disabled={!message.trim()}
+                disabled={!message.trim() || loading}
                 className="flex h-[42px] w-[42px] items-center justify-center rounded-xl bg-blue-700 text-white transition hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Send message"
               >
