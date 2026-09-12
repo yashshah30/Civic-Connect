@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FiMessageCircle,
   FiSend,
@@ -129,6 +130,8 @@ const getBotResponse = async (question) => {
 };
 
 export default function CivicAI() {
+  const navigate = useNavigate();
+
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -190,6 +193,21 @@ export default function CivicAI() {
     }
   };
 
+  const handleStartComplaint = () => {
+    navigate("/citizen/report");
+  };
+
+  const shouldShowComplaintButton = (text) => {
+    const q = text.toLowerCase();
+
+    return (
+      q.includes("raise complaint") ||
+      q.includes("report a civic issue") ||
+      q.includes("report a pothole") ||
+      q.includes("go to raise complaint")
+    );
+  };
+
   return (
     <>
       {/* Chat Window */}
@@ -242,6 +260,16 @@ export default function CivicAI() {
                   }`}
                 >
                   {msg.text}
+
+                  {msg.sender === "bot" &&
+                    shouldShowComplaintButton(msg.text) && (
+                      <button
+                        onClick={handleStartComplaint}
+                        className="mt-3 w-full rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800"
+                      >
+                        Start Complaint
+                      </button>
+                    )}
                 </div>
               </div>
             ))}
