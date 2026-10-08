@@ -1,127 +1,177 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import {
-  FiAlertCircle,
-  FiRefreshCw,
-} from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5001";
+
+const statusLabels = {
+  pending: "Submitted",
+  under_review: "Under Review",
+  assigned: "Assigned",
+  in_progress: "In Progress",
+  resolved: "Resolved",
+  rejected: "Rejected",
+};
 
 const statusStyles = {
-  Submitted: "bg-slate-100 text-slate-700",
-  "Under Review": "bg-blue-100 text-blue-700",
-  Assigned: "bg-purple-100 text-purple-700",
-  "In Progress": "bg-yellow-100 text-yellow-700",
-  Resolved: "bg-green-100 text-green-700",
-  Rejected: "bg-red-100 text-red-700",
+  pending:
+    "bg-gray-100 text-gray-700",
+  under_review:
+    "bg-yellow-100 text-yellow-700",
+  assigned:
+    "bg-blue-100 text-blue-700",
+  in_progress:
+    "bg-purple-100 text-purple-700",
+  resolved:
+    "bg-green-100 text-green-700",
+  rejected:
+    "bg-red-100 text-red-700",
 };
 
 const priorityStyles = {
-  Urgent: "bg-red-100 text-red-700",
-  High: "bg-orange-100 text-orange-700",
-  Medium: "bg-yellow-100 text-yellow-700",
-  Low: "bg-green-100 text-green-700",
+  low:
+    "bg-gray-100 text-gray-700",
+  medium:
+    "bg-blue-100 text-blue-700",
+  high:
+    "bg-orange-100 text-orange-700",
+  urgent:
+    "bg-red-100 text-red-700",
 };
 
-const formatStatus = (status) => {
-  const map = {
-    pending: "Submitted",
-    submitted: "Submitted",
-    under_review: "Under Review",
-    assigned: "Assigned",
-    in_progress: "In Progress",
-    resolved: "Resolved",
-    rejected: "Rejected",
-  };
+function formatDate(dateValue) {
+  if (!dateValue) return "—";
 
-  return (
-    map[status] ||
-    status
-      ?.replaceAll("_", " ")
-      ?.replace(/\b\w/g, (c) =>
-        c.toUpperCase()
-      ) ||
-    "Submitted"
-  );
-};
+  const date = new Date(dateValue);
 
-const formatPriority = (priority) => {
-  if (!priority) return "Medium";
-
-  return priority
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (c) =>
-      c.toUpperCase()
-    );
-};
-
-const formatDate = (date) => {
-  if (!date) return "—";
-
-  const value = new Date(date);
-
-  if (Number.isNaN(value.getTime())) {
+  if (Number.isNaN(date.getTime())) {
     return "—";
   }
 
-  return value.toLocaleDateString("en-IN", {
+  return date.toLocaleDateString("en-IN", {
     day: "2-digit",
     month: "short",
     year: "numeric",
   });
-};
+}
+
+function getStatusLabel(status) {
+  if (!status) return "Unknown";
+
+  return (
+    statusLabels[status] ||
+    status
+      .replaceAll("_", " ")
+      .replace(/\b\w/g, (char) =>
+        char.toUpperCase()
+      )
+  );
+}
+
+function getPriorityLabel(priority) {
+  if (!priority) return "—";
+
+  return (
+    priority.charAt(0).toUpperCase() +
+    priority.slice(1)
+  );
+}
+
+function getCategoryLabel(category) {
+  if (!category) return "—";
+
+  return category
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (char) =>
+      char.toUpperCase()
+    );
+}
 
 export default function AuthorityComplaints() {
-  const [complaints, setComplaints] = useState([]);
+  const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [complaints, setComplaints] =
+    useState([]);
 
-  const [error, setError] = useState("");
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  const [search, setSearch] =
+    useState("");
 
   const [statusFilter, setStatusFilter] =
-    useState("All");
-
-  const [categoryFilter, setCategoryFilter] =
-    useState("All");
+    useState("all");
 
   const [priorityFilter, setPriorityFilter] =
-    useState("All");
+    useState("all");
 
-  const fetchComplaints = async () => {
+  const [categoryFilter, setCategoryFilter] =
+    useState("all");
+
+  const [refreshing, setRefreshing] =
+    useState(false);
+
+  // ============================================================
+  // FETCH COMPLAINTS
+  // ============================================================
+
+  async function fetchComplaints(
+    showRefreshing = false
+  ) {
     try {
+      if (showRefreshing) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
+
       setError("");
 
       const token =
-        localStorage.getItem("access_token");
+        localStorage.getItem(
+          "access_token"
+        );
 
       if (!token) {
-        setError(
-          "Authentication required. Please log in again."
+        throw new Error(
+          "You are not authenticated."
         );
-        return;
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/complaints/authority`,
+        `${API_URL}/api/complaints/authority`,
         {
+          method: "GET",
+
           headers: {
             Authorization: `Bearer ${token}`,
+            "Content-Type":
+              "application/json",
           },
         }
       );
 
-      const result = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
-          result.message ||
-            "Failed to load complaints"
+          data?.message ||
+            "Failed to fetch complaints."
         );
       }
 
-      setComplaints(result.complaints || []);
+      setComplaints(
+        Array.isArray(data.complaints)
+          ? data.complaints
+          : []
+      );
     } catch (err) {
       console.error(
-        "Fetch authority complaints error:",
+        "Fetch complaints error:",
         err
       );
 
@@ -131,159 +181,181 @@ export default function AuthorityComplaints() {
       );
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }
 
   useEffect(() => {
     fetchComplaints();
   }, []);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await fetchComplaints();
-    setRefreshing(false);
-  };
+  // ============================================================
+  // CATEGORY LIST
+  // ============================================================
 
   const categories = useMemo(() => {
+    const uniqueCategories =
+      complaints
+        .map(
+          (complaint) =>
+            complaint.category
+        )
+        .filter(Boolean);
+
     return [
-      "All",
-      ...new Set(
-        complaints
-          .map((item) => item.category)
-          .filter(Boolean)
-      ),
+      ...new Set(uniqueCategories),
     ];
   }, [complaints]);
 
-  const filteredComplaints = useMemo(() => {
-    return complaints.filter((complaint) => {
-      const status =
-        formatStatus(complaint.status);
+  // ============================================================
+  // FILTER COMPLAINTS
+  // ============================================================
 
-      const priority =
-        formatPriority(complaint.priority);
+  const filteredComplaints =
+    useMemo(() => {
+      const searchValue =
+        search.trim().toLowerCase();
 
-      const statusMatch =
-        statusFilter === "All" ||
-        status === statusFilter;
+      return complaints.filter(
+        (complaint) => {
+          const matchesSearch =
+            !searchValue ||
+            complaint.id
+              ?.toLowerCase()
+              .includes(searchValue) ||
+            complaint.title
+              ?.toLowerCase()
+              .includes(searchValue) ||
+            complaint.description
+              ?.toLowerCase()
+              .includes(searchValue) ||
+            complaint.category
+              ?.toLowerCase()
+              .includes(searchValue) ||
+            complaint.citizen?.full_name
+              ?.toLowerCase()
+              .includes(searchValue);
 
-      const categoryMatch =
-        categoryFilter === "All" ||
-        complaint.category ===
-          categoryFilter;
+          const matchesStatus =
+            statusFilter === "all" ||
+            complaint.status ===
+              statusFilter;
 
-      const priorityMatch =
-        priorityFilter === "All" ||
-        priority === priorityFilter;
+          const matchesPriority =
+            priorityFilter === "all" ||
+            complaint.priority ===
+              priorityFilter;
 
-      return (
-        statusMatch &&
-        categoryMatch &&
-        priorityMatch
+          const matchesCategory =
+            categoryFilter === "all" ||
+            complaint.category ===
+              categoryFilter;
+
+          return (
+            matchesSearch &&
+            matchesStatus &&
+            matchesPriority &&
+            matchesCategory
+          );
+        }
       );
-    });
-  }, [
-    complaints,
-    statusFilter,
-    categoryFilter,
-    priorityFilter,
-  ]);
+    }, [
+      complaints,
+      search,
+      statusFilter,
+      priorityFilter,
+      categoryFilter,
+    ]);
+
+  // ============================================================
+  // OPEN COMPLAINT
+  // ============================================================
+
+  function openComplaint(id) {
+    navigate(
+      `/authority/complaints/${id}`
+    );
+  }
+
+  // ============================================================
+  // LOADING STATE
+  // ============================================================
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50">
-        <main className="mx-auto max-w-7xl px-4 py-12">
-          <div className="flex min-h-[400px] items-center justify-center">
-            <div className="text-center">
-              <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-800" />
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-6">
+            <div className="h-8 w-64 animate-pulse rounded bg-gray-200" />
 
-              <p className="mt-4 text-sm text-slate-600">
-                Loading complaints...
-              </p>
+            <div className="mt-2 h-4 w-96 animate-pulse rounded bg-gray-200" />
+          </div>
+
+          <div className="rounded-xl border bg-white p-6 shadow-sm">
+            <div className="space-y-4">
+              {[1, 2, 3, 4, 5].map(
+                (item) => (
+                  <div
+                    key={item}
+                    className="h-16 animate-pulse rounded-lg bg-gray-100"
+                  />
+                )
+              )}
             </div>
           </div>
-        </main>
+        </div>
       </div>
     );
   }
 
-  return (
-    <div className="min-h-screen bg-slate-50">
+  // ============================================================
+  // MAIN UI
+  // ============================================================
 
-      <nav className="border-b bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+      <div className="mx-auto max-w-7xl">
+
+        {/* ======================================================
+            HEADER
+        ====================================================== */}
+
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
           <div>
-            <h1 className="text-xl font-bold text-blue-900">
-              Civic Connect
+            <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+              Complaints
             </h1>
 
-            <p className="text-xs text-slate-500">
-              Authority Portal
-            </p>
-          </div>
-
-          <Link
-            to="/authority/dashboard"
-            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-          >
-            Dashboard
-          </Link>
-
-        </div>
-      </nav>
-
-
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-
-        <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-
-          <div>
-            <p className="text-sm font-medium text-blue-800">
-              Authority Portal
-            </p>
-
-            <h2 className="mt-1 text-3xl font-bold text-slate-900">
-              Complaint Management
-            </h2>
-
-            <p className="mt-2 text-slate-500">
-              View, monitor and manage citizen complaints.
+            <p className="mt-1 text-sm text-gray-600">
+              Review and manage citizen
+              complaints.
             </p>
           </div>
 
           <button
-            onClick={handleRefresh}
+            type="button"
+            onClick={() =>
+              fetchComplaints(true)
+            }
             disabled={refreshing}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+            className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <FiRefreshCw
-              className={
-                refreshing
-                  ? "animate-spin"
-                  : ""
-              }
-            />
-
             {refreshing
               ? "Refreshing..."
               : "Refresh"}
           </button>
-
         </div>
 
+        {/* ======================================================
+            ERROR
+        ====================================================== */}
 
         {error && (
-          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4">
-
-            <div className="flex gap-3">
-              <FiAlertCircle
-                className="mt-0.5 text-red-600"
-                size={20}
-              />
-
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="font-semibold text-red-900">
+                <p className="font-semibold text-red-800">
                   Unable to load complaints
                 </p>
 
@@ -291,252 +363,561 @@ export default function AuthorityComplaints() {
                   {error}
                 </p>
               </div>
-            </div>
 
+              <button
+                type="button"
+                onClick={() =>
+                  fetchComplaints()
+                }
+                className="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700"
+              >
+                Try Again
+              </button>
+            </div>
           </div>
         )}
 
+        {/* ======================================================
+            FILTERS
+        ====================================================== */}
 
-        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-6 rounded-xl border bg-white p-4 shadow-sm">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
 
-          <h3 className="font-semibold text-slate-900">
-            Filters
-          </h3>
+            {/* Search */}
 
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="lg:col-span-1">
+              <label
+                htmlFor="complaint-search"
+                className="mb-1 block text-xs font-medium text-gray-600"
+              >
+                Search
+              </label>
 
-            <select
-              value={statusFilter}
-              onChange={(e) =>
-                setStatusFilter(
-                  e.target.value
-                )
-              }
-              className="rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-blue-800"
-            >
-              <option value="All">
-                Status: All
-              </option>
-              <option>Submitted</option>
-              <option>Under Review</option>
-              <option>Assigned</option>
-              <option>In Progress</option>
-              <option>Resolved</option>
-              <option>Rejected</option>
-            </select>
+              <input
+                id="complaint-search"
+                type="text"
+                value={search}
+                onChange={(event) =>
+                  setSearch(
+                    event.target.value
+                  )
+                }
+                placeholder="Search ID, title, citizen..."
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
 
+            {/* Status */}
 
-            <select
-              value={categoryFilter}
-              onChange={(e) =>
-                setCategoryFilter(
-                  e.target.value
-                )
-              }
-              className="rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-blue-800"
-            >
-              {categories.map((category) => (
-                <option
-                  key={category}
-                  value={category}
-                >
-                  {category === "All"
-                    ? "Category: All"
-                    : category}
+            <div>
+              <label
+                htmlFor="status-filter"
+                className="mb-1 block text-xs font-medium text-gray-600"
+              >
+                Status
+              </label>
+
+              <select
+                id="status-filter"
+                value={statusFilter}
+                onChange={(event) =>
+                  setStatusFilter(
+                    event.target.value
+                  )
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="all">
+                  All Statuses
                 </option>
-              ))}
-            </select>
 
+                <option value="pending">
+                  Submitted
+                </option>
 
-            <select
-              value={priorityFilter}
-              onChange={(e) =>
-                setPriorityFilter(
-                  e.target.value
-                )
-              }
-              className="rounded-lg border border-slate-300 bg-white px-3 py-3 text-sm outline-none focus:border-blue-800"
-            >
-              <option value="All">
-                Priority: All
-              </option>
-              <option>Urgent</option>
-              <option>High</option>
-              <option>Medium</option>
-              <option>Low</option>
-            </select>
+                <option value="under_review">
+                  Under Review
+                </option>
 
+                <option value="assigned">
+                  Assigned
+                </option>
+
+                <option value="in_progress">
+                  In Progress
+                </option>
+
+                <option value="resolved">
+                  Resolved
+                </option>
+
+                <option value="rejected">
+                  Rejected
+                </option>
+              </select>
+            </div>
+
+            {/* Priority */}
+
+            <div>
+              <label
+                htmlFor="priority-filter"
+                className="mb-1 block text-xs font-medium text-gray-600"
+              >
+                Priority
+              </label>
+
+              <select
+                id="priority-filter"
+                value={priorityFilter}
+                onChange={(event) =>
+                  setPriorityFilter(
+                    event.target.value
+                  )
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="all">
+                  All Priorities
+                </option>
+
+                <option value="low">
+                  Low
+                </option>
+
+                <option value="medium">
+                  Medium
+                </option>
+
+                <option value="high">
+                  High
+                </option>
+
+                <option value="urgent">
+                  Urgent
+                </option>
+              </select>
+            </div>
+
+            {/* Category */}
+
+            <div>
+              <label
+                htmlFor="category-filter"
+                className="mb-1 block text-xs font-medium text-gray-600"
+              >
+                Category
+              </label>
+
+              <select
+                id="category-filter"
+                value={categoryFilter}
+                onChange={(event) =>
+                  setCategoryFilter(
+                    event.target.value
+                  )
+                }
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                <option value="all">
+                  All Categories
+                </option>
+
+                {categories.map(
+                  (category) => (
+                    <option
+                      key={category}
+                      value={category}
+                    >
+                      {getCategoryLabel(
+                        category
+                      )}
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
           </div>
 
+          {/* Filter summary */}
+
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-gray-600">
+            <span>
+              Showing{" "}
+              <span className="font-semibold text-gray-900">
+                {filteredComplaints.length}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-gray-900">
+                {complaints.length}
+              </span>{" "}
+              complaints
+            </span>
+
+            {(search ||
+              statusFilter !== "all" ||
+              priorityFilter !== "all" ||
+              categoryFilter !== "all") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch("");
+                  setStatusFilter("all");
+                  setPriorityFilter("all");
+                  setCategoryFilter("all");
+                }}
+                className="font-medium text-blue-600 hover:text-blue-700"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
         </div>
 
+        {/* ======================================================
+            EMPTY STATE
+        ====================================================== */}
 
-        {filteredComplaints.length === 0 ? (
-          <div className="rounded-xl border border-slate-200 bg-white p-12 text-center">
+        {filteredComplaints.length ===
+          0 && (
+            <div className="rounded-xl border bg-white p-10 text-center shadow-sm">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100">
+                <svg
+                  className="h-7 w-7 text-gray-400"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M9 12h6" />
+                  <path d="M9 16h6" />
+                  <path d="M9 8h6" />
+                  <rect
+                    x="4"
+                    y="3"
+                    width="16"
+                    height="18"
+                    rx="2"
+                  />
+                </svg>
+              </div>
 
-            <p className="font-semibold text-slate-700">
-              No complaints found
-            </p>
+              <h2 className="text-lg font-semibold text-gray-900">
+                No complaints found
+              </h2>
 
-            <p className="mt-1 text-sm text-slate-500">
-              Try changing your filters.
-            </p>
+              <p className="mt-1 text-sm text-gray-500">
+                Try changing the search or
+                filters.
+              </p>
+            </div>
+          )}
 
-          </div>
-        ) : (
+        {/* ======================================================
+            DESKTOP TABLE
+        ====================================================== */}
 
-          <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-
+        {filteredComplaints.length >
+          0 && (
+          <div className="hidden overflow-hidden rounded-xl border bg-white shadow-sm lg:block">
             <div className="overflow-x-auto">
-
-              <table className="w-full min-w-[900px] text-left text-sm">
-
-                <thead className="border-b bg-slate-50">
+              <table className="w-full min-w-[1000px]">
+                <thead className="border-b bg-gray-50">
                   <tr>
-                    <th className="px-5 py-4 font-semibold">
-                      ID
-                    </th>
-
-                    <th className="px-5 py-4 font-semibold">
+                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                       Complaint
                     </th>
 
-                    <th className="px-5 py-4 font-semibold">
-                      Category
-                    </th>
-
-                    <th className="px-5 py-4 font-semibold">
+                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                       Citizen
                     </th>
 
-                    <th className="px-5 py-4 font-semibold">
+                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Category
+                    </th>
+
+                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                       Priority
                     </th>
 
-                    <th className="px-5 py-4 font-semibold">
+                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                       Status
                     </th>
 
-                    <th className="px-5 py-4 font-semibold">
-                      Date
+                    <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                      Created
                     </th>
 
-                    <th className="px-5 py-4 font-semibold">
+                    <th className="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">
                       Action
                     </th>
                   </tr>
                 </thead>
 
-                <tbody className="divide-y divide-slate-100">
-
+                <tbody className="divide-y">
                   {filteredComplaints.map(
-                    (complaint) => {
+                    (complaint) => (
+                      <tr
+                        key={
+                          complaint.id
+                        }
+                        className="transition hover:bg-gray-50"
+                      >
+                        {/* Complaint */}
 
-                      const status =
-                        formatStatus(
-                          complaint.status
-                        );
-
-                      const priority =
-                        formatPriority(
-                          complaint.priority
-                        );
-
-                      return (
-                        <tr
-                          key={complaint.id}
-                          className="hover:bg-slate-50"
-                        >
-
-                          <td className="px-5 py-4 font-semibold text-blue-900">
-                            {complaint.id}
-                          </td>
-
-                          <td className="px-5 py-4">
-                            <p className="font-medium text-slate-800">
-                              {complaint.title}
+                        <td className="px-5 py-4">
+                          <div className="max-w-xs">
+                            <p className="text-xs font-medium text-gray-500">
+                              {complaint.id}
                             </p>
 
-                            <p className="mt-1 max-w-xs truncate text-xs text-slate-500">
-                              {complaint.address ||
-                                "No address"}
+                            <p className="mt-1 truncate font-semibold text-gray-900">
+                              {complaint.title ||
+                                "Untitled complaint"}
                             </p>
-                          </td>
 
-                          <td className="px-5 py-4 text-slate-600">
-                            {complaint.category ||
-                              "—"}
-                          </td>
-
-                          <td className="px-5 py-4 text-slate-600">
-                            {complaint.profiles
-                              ?.full_name ||
-                              "Citizen"}
-                          </td>
-
-                          <td className="px-5 py-4">
-
-                            <span
-                              className={`rounded-full px-3 py-1 text-xs font-medium ${
-                                priorityStyles[
-                                  priority
-                                ] ||
-                                "bg-slate-100 text-slate-700"
-                              }`}
-                            >
-                              {priority}
-                            </span>
-
-                          </td>
-
-                          <td className="px-5 py-4">
-
-                            <span
-                              className={`rounded-full px-3 py-1 text-xs font-medium ${
-                                statusStyles[
-                                  status
-                                ] ||
-                                "bg-slate-100 text-slate-700"
-                              }`}
-                            >
-                              {status}
-                            </span>
-
-                          </td>
-
-                          <td className="px-5 py-4 text-slate-600">
-                            {formatDate(
-                              complaint.created_at
+                            {complaint.address && (
+                              <p className="mt-1 truncate text-xs text-gray-500">
+                                {
+                                  complaint.address
+                                }
+                              </p>
                             )}
-                          </td>
+                          </div>
+                        </td>
 
-                          <td className="px-5 py-4">
+                        {/* Citizen */}
 
-                            <Link
-                              to={`/authority/complaints/${complaint.id}`}
-                              className="font-semibold text-blue-800 hover:underline"
-                            >
-                              View
-                            </Link>
+                        <td className="px-5 py-4">
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {complaint
+                                .citizen
+                                ?.full_name ||
+                                "Unknown Citizen"}
+                            </p>
 
-                          </td>
+                            <p className="text-xs text-gray-500">
+                              {complaint
+                                .citizen
+                                ?.email ||
+                                "—"}
+                            </p>
+                          </div>
+                        </td>
 
-                        </tr>
-                      );
-                    }
+                        {/* Category */}
+
+                        <td className="px-5 py-4 text-sm text-gray-700">
+                          {getCategoryLabel(
+                            complaint.category
+                          )}
+                        </td>
+
+                        {/* Priority */}
+
+                        <td className="px-5 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              priorityStyles[
+                                complaint
+                                  .priority
+                              ] ||
+                              "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            {getPriorityLabel(
+                              complaint.priority
+                            )}
+                          </span>
+                        </td>
+
+                        {/* Status */}
+
+                        <td className="px-5 py-4">
+                          <span
+                            className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              statusStyles[
+                                complaint.status
+                              ] ||
+                              "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            {getStatusLabel(
+                              complaint.status
+                            )}
+                          </span>
+                        </td>
+
+                        {/* Created */}
+
+                        <td className="px-5 py-4 text-sm text-gray-600">
+                          {formatDate(
+                            complaint.created_at
+                          )}
+                        </td>
+
+                        {/* Action */}
+
+                        <td className="px-5 py-4 text-right">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openComplaint(
+                                complaint.id
+                              )
+                            }
+                            className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700"
+                          >
+                            View
+                          </button>
+                        </td>
+                      </tr>
+                    )
                   )}
-
                 </tbody>
-
               </table>
-
             </div>
-
           </div>
         )}
 
-      </main>
+        {/* ======================================================
+            MOBILE / TABLET CARDS
+        ====================================================== */}
 
+        {filteredComplaints.length >
+          0 && (
+          <div className="space-y-4 lg:hidden">
+            {filteredComplaints.map(
+              (complaint) => (
+                <div
+                  key={complaint.id}
+                  className="rounded-xl border bg-white p-4 shadow-sm"
+                >
+                  {/* Header */}
+
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-medium text-gray-500">
+                        {complaint.id}
+                      </p>
+
+                      <h2 className="mt-1 truncate font-semibold text-gray-900">
+                        {complaint.title ||
+                          "Untitled complaint"}
+                      </h2>
+                    </div>
+
+                    <span
+                      className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        statusStyles[
+                          complaint.status
+                        ] ||
+                        "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {getStatusLabel(
+                        complaint.status
+                      )}
+                    </span>
+                  </div>
+
+                  {/* Details */}
+
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+
+                    <div>
+                      <p className="text-xs text-gray-500">
+                        Citizen
+                      </p>
+
+                      <p className="mt-1 font-medium text-gray-900">
+                        {complaint
+                          .citizen
+                          ?.full_name ||
+                          "Unknown"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500">
+                        Category
+                      </p>
+
+                      <p className="mt-1 font-medium text-gray-900">
+                        {getCategoryLabel(
+                          complaint.category
+                        )}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500">
+                        Priority
+                      </p>
+
+                      <span
+                        className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          priorityStyles[
+                            complaint
+                              .priority
+                          ] ||
+                          "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {getPriorityLabel(
+                          complaint.priority
+                        )}
+                      </span>
+                    </div>
+
+                    <div>
+                      <p className="text-xs text-gray-500">
+                        Created
+                      </p>
+
+                      <p className="mt-1 font-medium text-gray-900">
+                        {formatDate(
+                          complaint.created_at
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Address */}
+
+                  {complaint.address && (
+                    <div className="mt-4 rounded-lg bg-gray-50 p-3">
+                      <p className="text-xs font-medium text-gray-500">
+                        Location
+                      </p>
+
+                      <p className="mt-1 line-clamp-2 text-sm text-gray-700">
+                        {complaint.address}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Action */}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openComplaint(
+                        complaint.id
+                      )
+                    }
+                    className="mt-4 w-full rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700"
+                  >
+                    View Complaint
+                  </button>
+                </div>
+              )
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
