@@ -4,6 +4,9 @@ import { supabase } from "./config/supabase.js";
 import authRoutes from "./routes/auth.routes.js";
 import complaintRoutes from "./routes/complaint.routes.js";
 import notificationRoutes from "./routes/notification.routes.js";
+import profileRoutes from "./routes/profile.routes.js";
+import aiRoutes from "./routes/ai.routes.js";
+import departmentRoutes from "./routes/department.routes.js";
 
 const app = express();
 
@@ -45,5 +48,8 @@ app.get("/api/health", async (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/complaints", complaintRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/profile", profileRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/departments", departmentRoutes);
 
 export default app;

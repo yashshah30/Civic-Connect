@@ -74,7 +74,7 @@ function AppRoutes() {
         />
 
         {/* Citizen */}
-        <Route element={<ProtectedRoute />}>
+        <Route element={<ProtectedRoute allowedRole="citizen" />}>
           <Route element={<CitizenLayout />}>
             <Route
               path="/citizen/dashboard"
@@ -128,25 +128,27 @@ function AppRoutes() {
         </Route>
 
         {/* Authority */}
-        <Route
-          path="/authority/dashboard"
-          element={<AuthorityDashboard />}
-        />
+        <Route element={<ProtectedRoute allowedRole="authority" />}>
+          <Route
+            path="/authority/dashboard"
+            element={<AuthorityDashboard />}
+          />
 
-        <Route
-          path="/authority/complaints"
-          element={<AuthorityComplaints />}
-        />
+          <Route
+            path="/authority/complaints"
+            element={<AuthorityComplaints />}
+          />
 
-        <Route
-          path="/authority/complaints/:id"
-          element={<AuthorityComplaintDetails />}
-        />
+          <Route
+            path="/authority/complaints/:id"
+            element={<AuthorityComplaintDetails />}
+          />
 
-        <Route
-          path="/authority/map"
-          element={<CivicMap />}
-        />
+          <Route
+            path="/authority/map"
+            element={<CivicMap />}
+          />
+        </Route>
 
         {/* 404 */}
         <Route

@@ -106,8 +106,15 @@ export const getNotifications = async (req, res) => {
             )
           : null;
 
+        const isRead =
+          notification.is_read !== undefined
+            ? Boolean(notification.is_read)
+            : Boolean(notification.read);
+
         return {
           ...notification,
+          is_read: isRead,
+          read: isRead,
 
           complaint: complaint
             ? {
@@ -149,7 +156,7 @@ export const markNotificationRead = async (req, res) => {
   try {
     const supabase = getSupabase(req);
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from("notifications")
       .update({
         is_read: true,
@@ -157,9 +164,27 @@ export const markNotificationRead = async (req, res) => {
       .eq("id", req.params.id)
       .eq("user_id", req.user.id)
       .select()
-      .single();
+      .maybeSingle();
 
-    if (error) {
+    if (
+      error &&
+      (error.message?.includes("column") || error.code === "42703")
+    ) {
+      const fallbackResult = await supabase
+        .from("notifications")
+        .update({
+          read: true,
+        })
+        .eq("id", req.params.id)
+        .eq("user_id", req.user.id)
+        .select()
+        .maybeSingle();
+
+      data = fallbackResult.data;
+      error = fallbackResult.error;
+    }
+
+    if (error || !data) {
       return res.status(404).json({
         success: false,
         message: "Notification not found",
@@ -169,7 +194,11 @@ export const markNotificationRead = async (req, res) => {
     return res.json({
       success: true,
       message: "Notification marked as read",
-      notification: data,
+      notification: {
+        ...data,
+        is_read: true,
+        read: true,
+      },
     });
   } catch (error) {
     console.error("Mark notification read error:", error);
@@ -189,13 +218,26 @@ export const markAllNotificationsRead = async (req, res) => {
   try {
     const supabase = getSupabase(req);
 
-    const { error } = await supabase
+    let { error } = await supabase
       .from("notifications")
       .update({
         is_read: true,
       })
-      .eq("user_id", req.user.id)
-      .eq("is_read", false);
+      .eq("user_id", req.user.id);
+
+    if (
+      error &&
+      (error.message?.includes("column") || error.code === "42703")
+    ) {
+      const fallbackResult = await supabase
+        .from("notifications")
+        .update({
+          read: true,
+        })
+        .eq("user_id", req.user.id);
+
+      error = fallbackResult.error;
+    }
 
     if (error) {
       return res.status(500).json({

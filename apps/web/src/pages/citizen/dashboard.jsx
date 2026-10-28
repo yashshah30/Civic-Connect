@@ -74,7 +74,7 @@ useEffect(() => {
                 const userData = await userResponse.json();
 
                 if (userData.success && userData.user) {
-                    setUserName(userData.user.name || "Citizen");
+                    setUserName(userData.user.full_name || userData.user.name || "Citizen");
                 }
             }
 

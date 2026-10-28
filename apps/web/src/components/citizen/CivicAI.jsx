@@ -70,9 +70,9 @@ export default function CivicAI() {
               </div>
 
               <div>
-                <h2 className="font-semibold">Civic Assistant</h2>
+                <h2 className="font-semibold">PRAGATI AI</h2>
                 <p className="text-xs text-blue-100">
-                  Your civic help assistant
+                  Your Smart Civic Assistant
                 </p>
               </div>
             </div>
@@ -159,16 +159,16 @@ export default function CivicAI() {
         </div>
       )}
 
-      {/* Floating Civic AI Button */}
+      {/* Floating PRAGATI AI Button */}
       {!isOpen && (
         <button
           type="button"
           onClick={() => setIsOpen(true)}
           className="fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-full bg-blue-900 px-5 py-3 text-sm font-semibold text-white shadow-xl transition hover:bg-blue-800 hover:shadow-2xl sm:right-6"
-          aria-label="Open Civic AI Assistant"
+          aria-label="Open PRAGATI AI Assistant"
         >
           <FiMessageCircle className="text-xl" />
-          <span>Civic AI</span>
+          <span>PRAGATI AI</span>
         </button>
       )}
     </>

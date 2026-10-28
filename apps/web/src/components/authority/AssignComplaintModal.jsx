@@ -1,27 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) ||
   "https://civic-connect-backend-6i78.onrender.com";
-
-const departments = [
-  {
-    id: "4f3bc094-f7e7-4cb8-bcc8-8d7e72edc281",
-    name: "Drainage Department",
-  },
-  {
-    id: "0b309841-217a-4819-aac4-cc7ec1b9dca0",
-    name: "Road & Infrastructure",
-  },
-  {
-    id: "df2b24e5-680e-4400-a80b-137fc4914f76",
-    name: "Sanitation Department",
-  },
-  {
-    id: "5f59bd48-a624-4fd8-8a67-46083850ed4b",
-    name: "Water Department",
-  },
-];
 
 export default function AssignComplaintModal({
   isOpen,
@@ -29,9 +10,71 @@ export default function AssignComplaintModal({
   complaintId,
   onAssigned,
 }) {
+  const [departments, setDepartments] = useState([]);
   const [departmentId, setDepartmentId] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [loadingDepartments, setLoadingDepartments] = useState(false);
+  const [departmentsError, setDepartmentsError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    if (!isOpen) {
+      setDepartmentId("");
+      setSubmitError("");
+      setDepartmentsError("");
+      return;
+    }
+
+    let isMounted = true;
+
+    const fetchDepartments = async () => {
+      try {
+        setLoadingDepartments(true);
+        setDepartmentsError("");
+
+        const token = localStorage.getItem("access_token");
+
+        if (!token) {
+          throw new Error("Authentication required. Please log in.");
+        }
+
+        const response = await fetch(`${API_BASE_URL}/api/departments`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(
+            data.message || "Failed to load departments."
+          );
+        }
+
+        if (isMounted) {
+          setDepartments(data.departments || []);
+        }
+      } catch (err) {
+        console.error("Fetch departments error:", err);
+        if (isMounted) {
+          setDepartmentsError(
+            err.message || "Failed to load departments."
+          );
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingDepartments(false);
+        }
+      }
+    };
+
+    fetchDepartments();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
 
   if (!isOpen) {
     return null;
@@ -39,18 +82,18 @@ export default function AssignComplaintModal({
 
   const handleAssign = async () => {
     if (!departmentId) {
-      setError("Please select a department.");
+      setSubmitError("Please select a department.");
       return;
     }
 
     if (!complaintId) {
-      setError("Complaint ID is missing.");
+      setSubmitError("Complaint ID is missing.");
       return;
     }
 
     try {
-      setLoading(true);
-      setError("");
+      setSubmitting(true);
+      setSubmitError("");
 
       const token = localStorage.getItem("access_token");
 
@@ -89,13 +132,19 @@ export default function AssignComplaintModal({
     } catch (error) {
       console.error("Assign department error:", error);
 
-      setError(
+      setSubmitError(
         error.message || "Failed to assign department."
       );
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
+
+  const isActionDisabled =
+    loadingDepartments ||
+    submitting ||
+    !departmentId ||
+    departments.length === 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -115,8 +164,8 @@ export default function AssignComplaintModal({
           <button
             type="button"
             onClick={onClose}
-            disabled={loading}
-            className="text-xl text-slate-400 hover:text-slate-700"
+            disabled={submitting}
+            className="text-xl text-slate-400 hover:text-slate-700 disabled:opacity-50"
           >
             ×
           </button>
@@ -135,12 +184,16 @@ export default function AssignComplaintModal({
               onChange={(event) =>
                 setDepartmentId(event.target.value)
               }
-              disabled={loading}
-              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-800"
+              disabled={loadingDepartments || submitting}
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-blue-800 disabled:bg-slate-100 disabled:opacity-75"
             >
-              <option value="">
-                Select Department
-              </option>
+              {loadingDepartments ? (
+                <option value="">Loading departments...</option>
+              ) : departmentsError ? (
+                <option value="">Unable to load departments</option>
+              ) : (
+                <option value="">Select Department</option>
+              )}
 
               {departments.map((department) => (
                 <option
@@ -151,12 +204,25 @@ export default function AssignComplaintModal({
                 </option>
               ))}
             </select>
+
+            {loadingDepartments && (
+              <p className="mt-1 text-xs text-slate-500">
+                Fetching available departments...
+              </p>
+            )}
           </div>
 
-          {/* Error */}
-          {error && (
+          {/* Department Fetch Error */}
+          {departmentsError && (
             <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
-              {error}
+              {departmentsError}
+            </div>
+          )}
+
+          {/* Submission Error */}
+          {submitError && (
+            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
+              {submitError}
             </div>
           )}
 
@@ -166,7 +232,7 @@ export default function AssignComplaintModal({
             <button
               type="button"
               onClick={onClose}
-              disabled={loading}
+              disabled={submitting}
               className="flex-1 rounded-xl border border-slate-300 px-4 py-3 font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
               Cancel
@@ -175,10 +241,10 @@ export default function AssignComplaintModal({
             <button
               type="button"
               onClick={handleAssign}
-              disabled={loading}
+              disabled={isActionDisabled}
               className="flex-1 rounded-xl bg-blue-900 px-4 py-3 font-medium text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? "Assigning..." : "Assign"}
+              {submitting ? "Assigning..." : "Assign"}
             </button>
 
           </div>

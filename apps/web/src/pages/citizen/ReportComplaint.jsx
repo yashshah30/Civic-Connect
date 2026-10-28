@@ -6,9 +6,14 @@ FiMapPin,
 FiUpload,
 FiX,
 FiPlusCircle,
+FiZap,
+FiLoader,
+FiCheck,
+FiAlertCircle,
 } from "react-icons/fi";
 
 import Card from "../../components/ui/card";
+import { draftComplaintWithAI } from "../../services/aiService";
 
 const categories = [
 "Road",
@@ -17,6 +22,14 @@ const categories = [
 "Drainage",
 "Other",
 ];
+
+const normalizeCategory = (cat) => {
+    if (!cat) return "";
+    const match = categories.find(
+        (c) => c.toLowerCase() === String(cat).toLowerCase().trim()
+    );
+    return match || "Other";
+};
 
 const API_BASE_URL =
 import.meta.env.VITE_API_URL ||
@@ -27,6 +40,7 @@ const [form, setForm] = useState({
 title: "",
 description: "",
 category: "",
+priority: "medium",
 location: "",
 latitude: "",
 longitude: "",
@@ -39,6 +53,83 @@ const [success, setSuccess] = useState(false);
 const [loading, setLoading] = useState(false);
 const [locationLoading, setLocationLoading] = useState(false);
 const [successMessage, setSuccessMessage] = useState("");
+
+// PRAGATI AI State
+const [aiLoading, setAiLoading] = useState(false);
+const [aiError, setAiError] = useState("");
+const [aiSuccessMessage, setAiSuccessMessage] = useState("");
+const [aiDraft, setAiDraft] = useState(null);
+
+const handleAssistWithAI = async () => {
+    setAiError("");
+    setAiSuccessMessage("");
+
+    const rawInput = form.description?.trim();
+
+    if (!rawInput) {
+        setAiError(
+            "Please enter a rough description of the issue first in the description box so PRAGATI AI can assist you."
+        );
+        return;
+    }
+
+    if (rawInput.length < 5) {
+        setAiError(
+            "Description is too short. Please provide at least 5 characters describing the issue (e.g. 'huge pothole near metro pillar 45, water is accumulating')."
+        );
+        return;
+    }
+
+    try {
+        setAiLoading(true);
+        const draft = await draftComplaintWithAI(rawInput);
+
+        setAiDraft({
+            title: draft.title || "",
+            description: draft.description || "",
+            category: normalizeCategory(draft.category),
+            priority: (draft.priority || "medium").toLowerCase(),
+        });
+    } catch (error) {
+        console.error("PRAGATI AI assistance error:", error);
+        setAiError(
+            error.message ||
+                "PRAGATI AI is temporarily unavailable. You can continue submitting your complaint manually."
+        );
+    } finally {
+        setAiLoading(false);
+    }
+};
+
+const handleUseDraft = () => {
+    if (!aiDraft) return;
+
+    setForm((previous) => ({
+        ...previous,
+        title: aiDraft.title.trim(),
+        description: aiDraft.description.trim(),
+        category: aiDraft.category,
+        priority: aiDraft.priority || "medium",
+    }));
+
+    setErrors((previous) => ({
+        ...previous,
+        title: "",
+        description: "",
+        category: "",
+    }));
+
+    setAiSuccessMessage(
+        "PRAGATI AI draft applied! Please review the details below, confirm location & evidence, then submit."
+    );
+    setAiDraft(null);
+    setAiError("");
+};
+
+const handleDiscardDraft = () => {
+    setAiDraft(null);
+    setAiError("");
+};
 
 const handleChange = (event) => {
     const { name, value } = event.target;
@@ -251,7 +342,10 @@ const handleSubmit = async (event) => {
             "category",
             form.category.toLowerCase()
         );
-        formData.append("priority", "medium");
+        formData.append(
+            "priority",
+            (form.priority || "medium").toLowerCase()
+        );
         formData.append(
             "latitude",
             Number(form.latitude)
@@ -313,10 +407,14 @@ const handleSubmit = async (event) => {
             title: "",
             description: "",
             category: "",
+            priority: "medium",
             location: "",
             latitude: "",
             longitude: "",
         });
+        setAiDraft(null);
+        setAiError("");
+        setAiSuccessMessage("");
 
         images.forEach((image) => {
             URL.revokeObjectURL(image.preview);
@@ -462,12 +560,12 @@ return (
 
                                 <span
                                     className={`text-xs font-medium ${
-                                        form.description.length >= 450
+                                        form.description.length >= 950
                                             ? "text-red-600"
                                             : "text-slate-400"
                                     }`}
                                 >
-                                    {form.description.length}/500
+                                    {form.description.length}/1000
                                 </span>
                             </div>
 
@@ -476,7 +574,7 @@ return (
                                 value={form.description}
                                 onChange={(event) => {
                                     if (
-                                        event.target.value.length <= 500
+                                        event.target.value.length <= 1000
                                     ) {
                                         handleChange(event);
                                     }
@@ -495,6 +593,222 @@ return (
                                     {errors.description}
                                 </p>
                             )}
+
+                            {/* PRAGATI AI Section */}
+                            <div className="mt-4 space-y-4">
+                                {/* AI Trigger Action Bar */}
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50/90 via-indigo-50/40 to-blue-50/80 p-4 transition-all">
+                                    <div className="flex items-start gap-3">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-900 text-amber-300 shadow-sm">
+                                            <FiZap size={18} />
+                                        </div>
+                                        <div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-bold text-blue-900">
+                                                    PRAGATI AI
+                                                </span>
+                                                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-800">
+                                                    Your Smart Civic Assistant
+                                                </span>
+                                            </div>
+                                            <p className="mt-0.5 text-xs text-slate-600">
+                                                Type rough notes or Hindi/Hinglish in description, then let PRAGATI AI formalize your complaint.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        type="button"
+                                        onClick={handleAssistWithAI}
+                                        disabled={aiLoading}
+                                        className="inline-flex w-full sm:w-auto shrink-0 items-center justify-center gap-2 rounded-xl bg-blue-900 px-4 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                                    >
+                                        {aiLoading ? (
+                                            <>
+                                                <FiLoader size={15} className="animate-spin" />
+                                                <span>PRAGATI AI is drafting...</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <FiZap size={15} />
+                                                <span>Assist with PRAGATI AI</span>
+                                            </>
+                                        )}
+                                    </button>
+                                </div>
+
+                                {/* PRAGATI AI Error Message */}
+                                {aiError && (
+                                    <div className="flex items-start justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-900 shadow-sm">
+                                        <div className="flex items-start gap-2.5">
+                                            <FiAlertCircle size={18} className="shrink-0 text-amber-600 mt-0.5" />
+                                            <div className="text-xs">
+                                                <p className="font-semibold">{aiError}</p>
+                                                <p className="mt-0.5 text-amber-800">
+                                                    You can continue submitting your complaint manually.
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAiError("")}
+                                            className="rounded-lg p-1 text-amber-700 hover:bg-amber-100 transition"
+                                            aria-label="Dismiss error"
+                                        >
+                                            <FiX size={15} />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* PRAGATI AI Success/Applied Notice */}
+                                {aiSuccessMessage && (
+                                    <div className="flex items-start justify-between gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-900 shadow-sm">
+                                        <div className="flex items-start gap-2.5">
+                                            <FiCheckCircle size={18} className="shrink-0 text-emerald-600 mt-0.5" />
+                                            <p className="text-xs font-medium text-emerald-900">
+                                                {aiSuccessMessage}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setAiSuccessMessage("")}
+                                            className="rounded-lg p-1 text-emerald-700 hover:bg-emerald-100 transition"
+                                            aria-label="Dismiss notice"
+                                        >
+                                            <FiX size={15} />
+                                        </button>
+                                    </div>
+                                )}
+
+                                {/* PRAGATI AI Draft Review Card */}
+                                {aiDraft && (
+                                    <div className="rounded-2xl border-2 border-blue-200 bg-white p-5 shadow-md ring-4 ring-blue-50/70 sm:p-6 transition-all">
+                                        {/* Draft Header */}
+                                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-4">
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-900 text-amber-300">
+                                                    <FiZap size={18} />
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <h3 className="text-sm font-bold text-slate-900">
+                                                            PRAGATI AI Draft
+                                                        </h3>
+                                                        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-800">
+                                                            Review & Edit
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-xs text-slate-500">
+                                                        Your Smart Civic Assistant • Review and edit the fields below before using this draft in your form.
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <button
+                                                type="button"
+                                                onClick={handleDiscardDraft}
+                                                className="inline-flex items-center gap-1.5 self-start sm:self-center rounded-lg px-2.5 py-1 text-xs font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition"
+                                            >
+                                                <FiX size={14} /> Discard Draft
+                                            </button>
+                                        </div>
+
+                                        {/* Draft Editable Fields */}
+                                        <div className="mt-5 space-y-4">
+                                            {/* Title */}
+                                            <div>
+                                                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                                                    Generated Title
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={aiDraft.title}
+                                                    onChange={(e) =>
+                                                        setAiDraft({ ...aiDraft, title: e.target.value })
+                                                    }
+                                                    className="w-full rounded-xl border border-slate-300 bg-slate-50/60 px-3.5 py-2.5 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                                                    placeholder="Complaint title"
+                                                />
+                                            </div>
+
+                                            {/* Category & Priority Grid */}
+                                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                                {/* Category */}
+                                                <div>
+                                                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                                                        Suggested Category
+                                                    </label>
+                                                    <select
+                                                        value={aiDraft.category}
+                                                        onChange={(e) =>
+                                                            setAiDraft({ ...aiDraft, category: e.target.value })
+                                                        }
+                                                        className="w-full rounded-xl border border-slate-300 bg-slate-50/60 px-3.5 py-2.5 text-sm font-medium text-slate-900 outline-none transition focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                                                    >
+                                                        <option value="">Select category</option>
+                                                        {categories.map((cat) => (
+                                                            <option key={cat} value={cat}>
+                                                                {cat}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+
+                                                {/* Priority */}
+                                                <div>
+                                                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                                                        Inferred Priority
+                                                    </label>
+                                                    <select
+                                                        value={aiDraft.priority}
+                                                        onChange={(e) =>
+                                                            setAiDraft({ ...aiDraft, priority: e.target.value })
+                                                        }
+                                                        className="w-full rounded-xl border border-slate-300 bg-slate-50/60 px-3.5 py-2.5 text-sm font-medium text-slate-900 outline-none transition capitalize focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                                                    >
+                                                        <option value="low">Low (Minor issue)</option>
+                                                        <option value="medium">Medium (Standard)</option>
+                                                        <option value="high">High (Major hazard)</option>
+                                                        <option value="urgent">Urgent (Immediate danger)</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            {/* Formal Description */}
+                                            <div>
+                                                <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-700">
+                                                    Formal Description (English)
+                                                </label>
+                                                <textarea
+                                                    rows={5}
+                                                    value={aiDraft.description}
+                                                    onChange={(e) =>
+                                                        setAiDraft({ ...aiDraft, description: e.target.value })
+                                                    }
+                                                    className="w-full resize-none rounded-xl border border-slate-300 bg-slate-50/60 px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-100"
+                                                    placeholder="Formal description formatted by PRAGATI AI"
+                                                />
+                                            </div>
+
+                                            {/* Draft Actions */}
+                                            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                                                <p className="text-xs text-slate-500">
+                                                    Clicking <strong>Use This Draft</strong> copies these values into your complaint form. You will still review location and photos before submitting.
+                                                </p>
+
+                                                <button
+                                                    type="button"
+                                                    onClick={handleUseDraft}
+                                                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-900 px-5 py-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-blue-800 focus:outline-none focus:ring-4 focus:ring-blue-100"
+                                                >
+                                                    <FiCheck size={16} />
+                                                    <span>Use This Draft</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Category */}
@@ -535,6 +849,25 @@ return (
                                     {errors.category}
                                 </p>
                             )}
+                        </div>
+
+                        {/* Priority Level */}
+                        <div>
+                            <label className="mb-2 block text-sm font-semibold text-slate-700">
+                                Priority Level
+                            </label>
+
+                            <select
+                                name="priority"
+                                value={form.priority || "medium"}
+                                onChange={handleChange}
+                                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition capitalize focus:border-blue-800 focus:ring-4 focus:ring-blue-100"
+                            >
+                                <option value="low">Low (Minor issue / Cosmetic)</option>
+                                <option value="medium">Medium (Standard issue)</option>
+                                <option value="high">High (Major disruption / Safety hazard)</option>
+                                <option value="urgent">Urgent (Immediate danger / Emergency)</option>
+                            </select>
                         </div>
                     </div>
                 </Card>

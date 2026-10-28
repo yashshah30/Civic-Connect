@@ -1,25 +1,28 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import { Sparkles } from "lucide-react";
 
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4 sm:px-8">
+    <nav className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur-md">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-3.5 sm:px-8">
         
         {/* Logo */}
         <Link to="/landing" className="flex items-center gap-3">
           <img
             src="/logo.jpeg"
             alt="Civic Connect Logo"
-            className="h-10 w-10 rounded-xl object-contain"
+            className="h-10 w-10 rounded-xl object-contain shadow-sm"
           />
           <div>
-            <h1 className="text-lg font-extrabold tracking-tight text-blue-950">
-              Civic Connect
-            </h1>
-            <p className="hidden text-[10px] font-medium uppercase tracking-widest text-slate-400 sm:block">
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-lg font-extrabold tracking-tight text-blue-950">
+                Civic Connect
+              </h1>
+            </div>
+            <p className="hidden text-[10px] font-semibold uppercase tracking-widest text-slate-400 sm:block">
               Better communities together
             </p>
           </div>
@@ -28,26 +31,27 @@ export default function Navbar() {
         {/* Navigation Links - Desktop */}
         <div className="hidden items-center gap-8 md:flex">
           <a
-            href="#about"
-            className="text-sm font-medium text-slate-600 transition hover:text-blue-800"
+            href="#pragati-ai"
+            className="inline-flex items-center gap-1 text-sm font-semibold text-blue-900 transition hover:text-blue-700"
           >
-            About
+            <Sparkles className="h-3.5 w-3.5 text-blue-600" />
+            <span>PRAGATI AI</span>
           </a>
           <a
             href="#how-it-works"
-            className="text-sm font-medium text-slate-600 transition hover:text-blue-800"
+            className="text-sm font-medium text-slate-600 transition hover:text-blue-900"
           >
             How It Works
           </a>
           <a
-            href="#impact"
-            className="text-sm font-medium text-slate-600 transition hover:text-blue-800"
+            href="#features"
+            className="text-sm font-medium text-slate-600 transition hover:text-blue-900"
           >
-            Impact
+            Capabilities
           </a>
           <a
             href="#faq"
-            className="text-sm font-medium text-slate-600 transition hover:text-blue-800"
+            className="text-sm font-medium text-slate-600 transition hover:text-blue-900"
           >
             FAQ
           </a>
@@ -57,14 +61,14 @@ export default function Navbar() {
         <div className="flex items-center gap-3">
           <Link
             to="/login"
-            className="rounded-lg px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 sm:px-4"
+            className="rounded-lg px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 sm:px-4"
           >
-            Login
+            Sign In
           </Link>
 
           <Link
             to="/signup"
-            className="rounded-lg bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800"
+            className="rounded-xl bg-blue-900 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-800"
           >
             Get Started
           </Link>
@@ -106,30 +110,31 @@ export default function Navbar() {
         <div className="border-t border-slate-200 bg-white px-5 py-4 md:hidden">
           <div className="flex flex-col space-y-3">
             <a
-              href="#about"
+              href="#pragati-ai"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-medium text-slate-700 hover:text-blue-800"
+              className="flex items-center gap-1.5 text-sm font-semibold text-blue-900"
             >
-              About
+              <Sparkles className="h-3.5 w-3.5 text-blue-600" />
+              <span>PRAGATI AI</span>
             </a>
             <a
               href="#how-it-works"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-medium text-slate-700 hover:text-blue-800"
+              className="text-sm font-medium text-slate-700 hover:text-blue-900"
             >
               How It Works
             </a>
             <a
-              href="#impact"
+              href="#features"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-medium text-slate-700 hover:text-blue-800"
+              className="text-sm font-medium text-slate-700 hover:text-blue-900"
             >
-              Impact
+              Capabilities
             </a>
             <a
               href="#faq"
               onClick={() => setMobileMenuOpen(false)}
-              className="text-sm font-medium text-slate-700 hover:text-blue-800"
+              className="text-sm font-medium text-slate-700 hover:text-blue-900"
             >
               FAQ
             </a>

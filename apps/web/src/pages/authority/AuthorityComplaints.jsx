@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import ComplaintFilters from "../../components/authority/ComplaintFilters";
 
 const API_BASE =
+  import.meta.env.VITE_API_URL ||
   "https://civic-connect-backend-6i78.onrender.com";
 
 const priorityStyles = {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   FiArrowLeft,
@@ -7,14 +7,13 @@ import {
   FiPrinter,
 } from "react-icons/fi";
 
-import Navbar from "../../components/layout/navbar";
 import Card from "../../components/ui/card";
 import StatusBadge from "../../components/citizen/StatusBadge";
 import StatusTimeline from "../../components/citizen/StatusTimeline";
 import ComplaintLocationMap from "../../components/citizen/ComplaintLocationMap";
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL ||
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) ||
   "https://civic-connect-backend-6i78.onrender.com";
 
 const formatStatus = (status) => {
@@ -43,10 +42,14 @@ export default function ComplaintDetails() {
   const navigate = useNavigate();
 
   const [complaint, setComplaint] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchComplaint = async () => {
       try {
         setLoading(true);
@@ -104,12 +107,52 @@ export default function ComplaintDetails() {
           JSON.stringify(data.complaint.complaint_media, null, 2)
         );
 
-        setComplaint(data.complaint);
+        if (isMounted) {
+          setComplaint(data.complaint);
+        }
+
+        // Fetch status history gracefully without breaking complaint details if it fails
+        try {
+          if (isMounted) setHistoryLoading(true);
+
+          const historyResponse = await fetch(
+            `${API_BASE_URL}/api/complaints/${id}/status-history`,
+            {
+              method: "GET",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          if (historyResponse.ok) {
+            const historyData = await historyResponse.json();
+            if (historyData.success && isMounted) {
+              setHistory(historyData.history || []);
+            }
+          } else {
+            console.warn(
+              "Status history fetch returned status:",
+              historyResponse.status
+            );
+          }
+        } catch (historyErr) {
+          console.warn("Unable to load complaint status history:", historyErr);
+        } finally {
+          if (isMounted) {
+            setHistoryLoading(false);
+          }
+        }
       } catch (err) {
         console.error("Complaint details error:", err);
-        setError(err.message || "Unable to load complaint.");
+        if (isMounted) {
+          setError(err.message || "Unable to load complaint.");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
@@ -119,7 +162,33 @@ export default function ComplaintDetails() {
       setError("Complaint ID is missing.");
       setLoading(false);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
+
+  const timelineHistory = useMemo(() => {
+    if (!complaint) return history;
+
+    const hasSubmitted = history.some(
+      (item) =>
+        (item.new_status || "").toLowerCase().replace(/_/g, " ") === "submitted"
+    );
+
+    if (!hasSubmitted && complaint.created_at) {
+      return [
+        {
+          new_status: "submitted",
+          created_at: complaint.created_at,
+          comment: "Complaint submitted successfully",
+        },
+        ...history,
+      ];
+    }
+
+    return history;
+  }, [history, complaint]);
 
   const handlePrint = () => {
     window.print();
@@ -128,8 +197,6 @@ export default function ComplaintDetails() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <Navbar />
-
         <main className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
           <Card>
             <div className="py-10 text-center">
@@ -148,8 +215,6 @@ export default function ComplaintDetails() {
   if (error || !complaint) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <Navbar />
-
         <main className="mx-auto max-w-4xl px-4 py-12">
           <Card>
             <div className="text-center">
@@ -188,8 +253,6 @@ export default function ComplaintDetails() {
 
   return (
     <div className="min-h-screen bg-slate-50 print:bg-white">
-      <Navbar />
-
       <style>{`
         @media print {
           @page {
@@ -393,13 +456,21 @@ export default function ComplaintDetails() {
 
             {/* Tracking */}
             <Card>
-              <h2 className="text-xl font-bold text-slate-900">
-                Complaint Tracking
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-bold text-slate-900">
+                  Complaint Tracking
+                </h2>
+                {historyLoading && (
+                  <span className="text-xs text-slate-400">
+                    Loading history...
+                  </span>
+                )}
+              </div>
 
               <div className="mt-6">
                 <StatusTimeline
                   currentStatus={formatStatus(status)}
+                  history={timelineHistory}
                 />
               </div>
             </Card>

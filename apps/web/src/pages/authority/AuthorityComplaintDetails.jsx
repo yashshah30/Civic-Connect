@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import AssignComplaintModal from "../../components/authority/AssignComplaintModal";
+import StatusUpdateModal from "../../components/authority/StatusUpdateModal";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
@@ -37,8 +38,44 @@ export default function AuthorityComplaintDetails() {
 
   const [complaint, setComplaint] = useState(null);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const handleStatusUpdate = async (newStatus, comment) => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) throw new Error("Please log in again.");
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/complaints/${id}/status`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            status: newStatus,
+            comment: comment?.trim() || null,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Failed to update complaint status.");
+      }
+
+      setComplaint((prev) => ({
+        ...prev,
+        status: newStatus,
+      }));
+    } catch (err) {
+      console.error("Status update error:", err);
+      alert(err.message || "Failed to update status.");
+    }
+  };
 
     const fetchComplaint = async () => {
     try {
@@ -365,8 +402,8 @@ export default function AuthorityComplaintDetails() {
 
                 <button
                   type="button"
-                  disabled
-                  className="w-full cursor-not-allowed rounded-lg border border-blue-900 px-4 py-3 text-sm font-medium text-blue-900 opacity-50"
+                  onClick={() => setIsStatusModalOpen(true)}
+                  className="w-full rounded-lg border border-blue-900 px-4 py-3 text-sm font-medium text-blue-900 transition hover:bg-blue-50"
                 >
                   Change Status
                 </button>
@@ -433,6 +470,13 @@ export default function AuthorityComplaintDetails() {
         onAssigned={(updatedComplaint) => {
           setComplaint(updatedComplaint);
         }}
+      />
+
+      <StatusUpdateModal
+        isOpen={isStatusModalOpen}
+        currentStatus={complaint.status}
+        onClose={() => setIsStatusModalOpen(false)}
+        onUpdate={handleStatusUpdate}
       />
 
     </div>

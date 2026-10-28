@@ -82,6 +82,7 @@ if (profileError) {
       },
       accessToken: token,
     };
+    req.supabase = authenticatedSupabase;
 
     next();
   } catch (error) {

@@ -434,7 +434,7 @@ export const updateComplaintStatus = async (req, res) => {
       console.error("Status history error:", historyError);
     }
 
-    const { error: notificationError } =
+    let { error: notificationError } =
       await authenticatedSupabase
         .from("notifications")
         .insert({
@@ -448,6 +448,26 @@ export const updateComplaintStatus = async (req, res) => {
           type: "status_update",
           is_read: false,
         });
+
+    if (
+      notificationError &&
+      (notificationError.message?.includes("column") ||
+        notificationError.code === "42703")
+    ) {
+      const fallbackResult = await authenticatedSupabase
+        .from("notifications")
+        .insert({
+          user_id: complaint.user_id,
+          complaint_id: id,
+          message: `Your complaint "${complaint.title}" status changed to ${status.replace(
+            "_",
+            " "
+          )}.`,
+          read: false,
+        });
+
+      notificationError = fallbackResult.error;
+    }
 
     if (notificationError) {
       console.error("Notification error:", notificationError);

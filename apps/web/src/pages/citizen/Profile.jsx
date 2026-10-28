@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import Navbar from "../../components/layout/navbar";
-const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:5000";
+const apiUrl =
+  import.meta.env.VITE_API_URL ||
+  "https://civic-connect-backend-6i78.onrender.com";
 const fallbackProfile = {
   name: "John Doe",
   email: "john.doe@example.com",
@@ -155,8 +156,6 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <Navbar />
-
       <main className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Citizen Profile</h1>

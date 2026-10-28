@@ -85,9 +85,15 @@ const StatusTimeline = ({ currentStatus, history = [] }) => {
                                 </p>
                             )}
 
-                            {historyItem?.comment && (
+                            {(historyItem?.comment || historyItem?.remarks) && (
                                 <p className="mt-1 text-sm text-slate-600">
-                                    {historyItem.comment}
+                                    {historyItem.comment || historyItem.remarks}
+                                </p>
+                            )}
+
+                            {(historyItem?.changed_by_name || historyItem?.officer_name) && (
+                                <p className="mt-0.5 text-xs text-slate-400">
+                                    By: {historyItem.changed_by_name || historyItem.officer_name}
                                 </p>
                             )}
                         </div>

@@ -2,8 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import AuthorityStats from "../../components/authority/AuthorityStats";
 
-const API_URL =
-  "https://civic-connect-backend-6i78.onrender.com/api/complaints/authority";
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://civic-connect-backend-6i78.onrender.com";
+
+const API_URL = `${API_BASE_URL}/api/complaints/authority`;
 
 export default function AuthorityDashboard() {
   const [complaints, setComplaints] = useState([]);

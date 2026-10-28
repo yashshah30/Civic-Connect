@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   FiSearch,
   FiFilter,
@@ -6,7 +7,6 @@ import {
   FiRefreshCw,
 } from "react-icons/fi";
 
-import Navbar from "../../components/layout/navbar";
 import ComplaintCard from "../../components/citizen/ComplaintCard";
 
 const API_BASE_URL =
@@ -30,6 +30,7 @@ const formatPriority = (priority) => {
 };
 
 export default function MyComplaints() {
+  const navigate = useNavigate();
   const [complaints, setComplaints] = useState([]);
 
   const [loading, setLoading] = useState(true);
@@ -277,8 +278,6 @@ export default function MyComplaints() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar />
-
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
 
         {/* Header */}
@@ -300,7 +299,7 @@ export default function MyComplaints() {
           <button
             type="button"
             onClick={() => {
-              window.location.href = "/citizen/report";
+              navigate("/citizen/report");
             }}
             className="rounded-xl bg-blue-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-800"
           >
