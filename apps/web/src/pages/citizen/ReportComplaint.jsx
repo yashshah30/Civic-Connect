@@ -314,16 +314,16 @@ const validateForm = () => {
         newErrors.category = "Please select a category.";
     }
 
-    if (!form.location.trim()) {
-        newErrors.location = "Location is required.";
+    if (!form.location.trim() && !form.latitude.trim()) {
+        newErrors.location = "Please enter an address or select a location on the map.";
     }
 
-    if (!form.latitude.trim()) {
-        newErrors.latitude = "Latitude is required.";
+    if (form.latitude.trim() && isNaN(Number(form.latitude))) {
+        newErrors.latitude = "Latitude must be a valid number.";
     }
 
-    if (!form.longitude.trim()) {
-        newErrors.longitude = "Longitude is required.";
+    if (form.longitude.trim() && isNaN(Number(form.longitude))) {
+        newErrors.longitude = "Longitude must be a valid number.";
     }
 
     setErrors(newErrors);
@@ -348,11 +348,17 @@ const handleSubmit = async (event) => {
             submit: "",
         }));
 
-        const token = localStorage.getItem("access_token");
+        const token =
+            localStorage.getItem("access_token") ||
+            localStorage.getItem("accessToken") ||
+            localStorage.getItem("token");
 
         if (!token) {
             throw new Error("Please log in again.");
         }
+
+        let lat = form.latitude.trim() ? Number(form.latitude) : null;
+        let lng = form.longitude.trim() ? Number(form.longitude) : null;
 
         const formData = new FormData();
 
@@ -369,17 +375,15 @@ const handleSubmit = async (event) => {
             "priority",
             (form.priority || "medium").toLowerCase()
         );
-        formData.append(
-            "latitude",
-            Number(form.latitude)
-        );
-        formData.append(
-            "longitude",
-            Number(form.longitude)
-        );
+        if (lat !== null && !isNaN(lat)) {
+            formData.append("latitude", lat);
+        }
+        if (lng !== null && !isNaN(lng)) {
+            formData.append("longitude", lng);
+        }
         formData.append(
             "address",
-            form.location.trim()
+            form.location.trim() || "City Area"
         );
 
         images.forEach((image) => {
@@ -957,9 +961,9 @@ return (
                         <div>
                             <div className="mb-2 flex items-center justify-between">
                                 <label className="text-sm font-semibold text-slate-700">
-                                    Select Location{" "}
-                                    <span className="text-red-500">
-                                        *
+                                    Pin on Map{" "}
+                                    <span className="text-xs font-normal text-slate-400">
+                                        (Optional)
                                     </span>
                                 </label>
 
@@ -1027,8 +1031,8 @@ return (
                             <div>
                                 <label className="mb-2 block text-sm font-semibold text-slate-700">
                                     Latitude{" "}
-                                    <span className="text-red-500">
-                                        *
+                                    <span className="text-xs font-normal text-slate-400">
+                                        (GPS coordinate)
                                     </span>
                                 </label>
 
@@ -1056,8 +1060,8 @@ return (
                             <div>
                                 <label className="mb-2 block text-sm font-semibold text-slate-700">
                                     Longitude{" "}
-                                    <span className="text-red-500">
-                                        *
+                                    <span className="text-xs font-normal text-slate-400">
+                                        (GPS coordinate)
                                     </span>
                                 </label>
 

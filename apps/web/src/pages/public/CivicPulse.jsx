@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   FiActivity,
   FiCheckCircle,
@@ -51,6 +51,9 @@ const formatTimeAgo = (date) => {
 };
 
 export default function CivicPulse() {
+  const location = useLocation();
+  const isCitizenPortal = location.pathname.startsWith("/citizen");
+
   const [range, setRange] = useState("30d");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -134,46 +137,44 @@ export default function CivicPulse() {
   const recentImprovements = data?.recentImprovements || [];
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-100 selection:bg-blue-600 selection:text-white">
-      <Navbar />
+    <div className={isCitizenPortal ? "min-h-full bg-slate-50 text-slate-900 font-sans" : "flex min-h-screen flex-col bg-slate-50 text-slate-900 font-sans selection:bg-blue-600 selection:text-white"}>
+      {/* Standalone navigation on public route only */}
+      {!isCitizenPortal && <Navbar />}
 
       <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl space-y-8">
-          {/* Header & Hero */}
-          <section className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-blue-950/40 to-slate-950 p-6 sm:p-10 shadow-2xl">
-            <div className="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
-            <div className="absolute -left-20 -bottom-20 h-72 w-72 rounded-full bg-emerald-600/10 blur-3xl pointer-events-none" />
-
+          {/* Header & Hero Card */}
+          <section className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm">
             <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
               <div className="space-y-3 max-w-2xl">
-                <div className="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3.5 py-1 text-xs font-semibold text-emerald-400">
-                  <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <div className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3.5 py-1 text-xs font-semibold text-blue-900">
+                  <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
                   Live City Transparency Pulse
                 </div>
 
-                <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl lg:text-5xl">
+                <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl lg:text-4xl">
                   City Civic Pulse
                 </h1>
 
-                <p className="text-sm leading-relaxed text-slate-300 sm:text-base">
+                <p className="text-sm leading-relaxed text-slate-600 sm:text-base">
                   Real-time municipal performance, complaint resolutions, and citizen-verified outcomes across our neighborhoods.
                 </p>
 
                 {/* Workflow Badge Step */}
-                <div className="hidden sm:flex flex-wrap items-center gap-2 pt-2 text-xs text-slate-400">
-                  <span className="rounded-md bg-slate-800/80 px-2.5 py-1 text-slate-200">
+                <div className="hidden sm:flex flex-wrap items-center gap-2 pt-2 text-xs text-slate-500">
+                  <span className="rounded-md bg-slate-100 px-2.5 py-1 text-slate-700 font-medium">
                     1. Citizen Reports
                   </span>
-                  <FiArrowRight className="text-slate-600" />
-                  <span className="rounded-md bg-slate-800/80 px-2.5 py-1 text-slate-200">
+                  <FiArrowRight className="text-slate-400" />
+                  <span className="rounded-md bg-slate-100 px-2.5 py-1 text-slate-700 font-medium">
                     2. Authorities Resolve
                   </span>
-                  <FiArrowRight className="text-slate-600" />
-                  <span className="rounded-md bg-emerald-950/80 border border-emerald-700/40 px-2.5 py-1 text-emerald-300 font-medium">
+                  <FiArrowRight className="text-slate-400" />
+                  <span className="rounded-md bg-emerald-50 border border-emerald-200 px-2.5 py-1 text-emerald-800 font-semibold">
                     3. Citizen Verifies
                   </span>
-                  <FiArrowRight className="text-slate-600" />
-                  <span className="rounded-md bg-blue-950/80 border border-blue-700/40 px-2.5 py-1 text-blue-300 font-medium">
+                  <FiArrowRight className="text-slate-400" />
+                  <span className="rounded-md bg-blue-50 border border-blue-200 px-2.5 py-1 text-blue-800 font-semibold">
                     4. Impact Visible
                   </span>
                 </div>
@@ -181,7 +182,7 @@ export default function CivicPulse() {
 
               {/* Time Range Switcher */}
               <div className="flex flex-col gap-3 sm:items-end">
-                <div className="flex items-center gap-1 rounded-2xl border border-slate-800 bg-slate-900/90 p-1.5 shadow-inner">
+                <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-100 p-1 shadow-inner">
                   {[
                     { label: "7 Days", value: "7d" },
                     { label: "30 Days", value: "30d" },
@@ -190,11 +191,12 @@ export default function CivicPulse() {
                   ].map((btn) => (
                     <button
                       key={btn.value}
+                      type="button"
                       onClick={() => setRange(btn.value)}
-                      className={`rounded-xl px-3.5 py-1.5 text-xs font-semibold transition ${
+                      className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition ${
                         range === btn.value
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "text-slate-400 hover:text-white"
+                          ? "bg-blue-900 text-white shadow-sm"
+                          : "text-slate-600 hover:text-slate-900"
                       }`}
                     >
                       {btn.label}
@@ -202,9 +204,9 @@ export default function CivicPulse() {
                   ))}
                 </div>
 
-                <div className="flex items-center gap-3 text-xs text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <FiShield className="text-emerald-400" /> Privacy Protected
+                <div className="flex items-center gap-3 text-xs text-slate-500">
+                  <span className="flex items-center gap-1 font-medium">
+                    <FiShield className="text-emerald-600" /> Privacy Protected
                   </span>
                   <span>•</span>
                   <span>
@@ -217,13 +219,14 @@ export default function CivicPulse() {
 
           {/* Error State */}
           {error && (
-            <div className="rounded-2xl border border-red-500/30 bg-red-950/40 p-6 text-center text-red-200">
-              <FiAlertTriangle className="mx-auto h-8 w-8 text-red-400 mb-2" />
-              <h3 className="text-base font-bold text-red-100">Unable to load Civic Pulse</h3>
-              <p className="mt-1 text-xs text-red-300">{error}</p>
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-6 text-center text-red-800 shadow-sm">
+              <FiAlertTriangle className="mx-auto h-8 w-8 text-red-500 mb-2" />
+              <h3 className="text-base font-bold text-red-900">Unable to load Civic Pulse</h3>
+              <p className="mt-1 text-xs text-red-700">{error}</p>
               <button
+                type="button"
                 onClick={() => fetchAnalytics(range)}
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-800 px-4 py-2 text-xs font-semibold text-white hover:bg-red-700 transition"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-red-700 px-4 py-2 text-xs font-semibold text-white hover:bg-red-800 transition"
               >
                 <FiRefreshCw /> Retry Loading
               </button>
@@ -233,11 +236,11 @@ export default function CivicPulse() {
           {/* KPI Metrics Grid */}
           <section className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
             {/* Total */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Complaints Logged
               </p>
-              <p className="mt-2 text-2xl font-black text-white sm:text-3xl">
+              <p className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">
                 {loading ? "..." : summary.total}
               </p>
               <p className="mt-1 text-[11px] text-slate-500">
@@ -246,66 +249,69 @@ export default function CivicPulse() {
             </div>
 
             {/* Resolved */}
-            <div className="rounded-2xl border border-emerald-900/40 bg-gradient-to-b from-emerald-950/30 to-slate-900/90 p-5 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wider text-emerald-400">
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wider text-emerald-800">
                 Resolved Issues
               </p>
-              <p className="mt-2 text-2xl font-black text-emerald-300 sm:text-3xl">
+              <p className="mt-2 text-2xl font-black text-emerald-700 sm:text-3xl">
                 {loading ? "..." : summary.resolved}
               </p>
-              <p className="mt-1 text-[11px] text-emerald-500/80">
+              <p className="mt-1 text-[11px] text-emerald-700">
                 Work completed
               </p>
             </div>
 
             {/* In Progress */}
-            <div className="rounded-2xl border border-blue-900/40 bg-gradient-to-b from-blue-950/30 to-slate-900/90 p-5 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wider text-blue-400">
+            <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wider text-blue-800">
                 In Active Work
               </p>
-              <p className="mt-2 text-2xl font-black text-blue-300 sm:text-3xl">
+              <p className="mt-2 text-2xl font-black text-blue-700 sm:text-3xl">
                 {loading ? "..." : summary.inProgress}
               </p>
-              <p className="mt-1 text-[11px] text-blue-500/80">
+              <p className="mt-1 text-[11px] text-blue-700">
                 Assigned & ongoing
               </p>
             </div>
 
             {/* Pending */}
-            <div className="rounded-2xl border border-amber-900/40 bg-gradient-to-b from-amber-950/30 to-slate-900/90 p-5 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wider text-amber-400">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wider text-amber-800">
                 Pending Intake
               </p>
-              <p className="mt-2 text-2xl font-black text-amber-300 sm:text-3xl">
+              <p className="mt-2 text-2xl font-black text-amber-700 sm:text-3xl">
                 {loading ? "..." : summary.pending}
               </p>
-              <p className="mt-1 text-[11px] text-amber-500/80">
+              <p className="mt-1 text-[11px] text-amber-700">
                 Under review
               </p>
             </div>
 
             {/* Resolution Rate */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/90 p-5 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
+            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 City Resolution Rate
               </p>
-              <p className="mt-2 text-2xl font-black text-white sm:text-3xl">
+              <p className="mt-2 text-2xl font-black text-slate-900 sm:text-3xl">
                 {loading ? "..." : `${summary.resolutionRate}%`}
               </p>
-              <div className="mt-2 h-1.5 w-full rounded-full bg-slate-800 overflow-hidden">
+              <div className="mt-2 h-1.5 w-full rounded-full bg-slate-100 overflow-hidden">
                 <div
-                  className="h-full bg-emerald-500 transition-all duration-500"
+                  className="h-full bg-emerald-600 transition-all duration-500"
                   style={{ width: `${Math.min(100, summary.resolutionRate || 0)}%` }}
                 />
               </div>
+              <p className="mt-1 text-[11px] text-slate-500">
+                Complaints closed
+              </p>
             </div>
 
             {/* Citizen Verification Rate */}
-            <div className="rounded-2xl border border-purple-900/40 bg-gradient-to-b from-purple-950/30 to-slate-900/90 p-5 shadow-sm">
-              <p className="text-xs font-medium uppercase tracking-wider text-purple-400">
+            <div className="rounded-2xl border border-purple-200 bg-purple-50/70 p-5 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-wider text-purple-800">
                 Citizen Verified
               </p>
-              <p className="mt-2 text-2xl font-black text-purple-300 sm:text-3xl">
+              <p className="mt-2 text-2xl font-black text-purple-700 sm:text-3xl">
                 {loading
                   ? "..."
                   : resolutionImpact.hasSufficientData &&
@@ -315,7 +321,7 @@ export default function CivicPulse() {
                   ? `${resolutionImpact.citizenVerified}`
                   : "Active"}
               </p>
-              <p className="mt-1 text-[11px] text-purple-400/80">
+              <p className="mt-1 text-[11px] text-purple-700">
                 {resolutionImpact.citizenVerified} verified fixes
               </p>
             </div>
@@ -324,14 +330,14 @@ export default function CivicPulse() {
           {/* Section: Trend Chart & Category Breakdown */}
           <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Trend Chart (2 columns) */}
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/90 p-6 shadow-sm lg:col-span-2">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-800 pb-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-4">
                 <div>
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    <FiTrendingUp className="text-blue-400" />
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <FiTrendingUp className="text-blue-700" />
                     City Resolution & Activity Trend
                   </h2>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     Daily civic complaint inflow and completed repairs over time
                   </p>
                 </div>
@@ -341,10 +347,10 @@ export default function CivicPulse() {
                     type="button"
                     onClick={() => setActiveTrendView("all")}
                     className={`flex items-center gap-1.5 transition ${
-                      activeTrendView === "all" ? "text-blue-400 font-bold" : "text-slate-400"
+                      activeTrendView === "all" ? "text-blue-700 font-bold" : "text-slate-500 hover:text-slate-700"
                     }`}
                   >
-                    <span className="h-2.5 w-2.5 rounded-sm bg-blue-500" />
+                    <span className="h-2.5 w-2.5 rounded-sm bg-blue-600" />
                     Total
                   </button>
                   <button
@@ -352,11 +358,11 @@ export default function CivicPulse() {
                     onClick={() => setActiveTrendView("resolved")}
                     className={`flex items-center gap-1.5 transition ${
                       activeTrendView === "resolved"
-                        ? "text-emerald-400 font-bold"
-                        : "text-slate-400"
+                        ? "text-emerald-700 font-bold"
+                        : "text-slate-500 hover:text-slate-700"
                     }`}
                   >
-                    <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500" />
+                    <span className="h-2.5 w-2.5 rounded-sm bg-emerald-600" />
                     Resolved
                   </button>
                   <button
@@ -364,11 +370,11 @@ export default function CivicPulse() {
                     onClick={() => setActiveTrendView("pending")}
                     className={`flex items-center gap-1.5 transition ${
                       activeTrendView === "pending"
-                        ? "text-amber-400 font-bold"
-                        : "text-slate-400"
+                        ? "text-amber-700 font-bold"
+                        : "text-slate-500 hover:text-slate-700"
                     }`}
                   >
-                    <span className="h-2.5 w-2.5 rounded-sm bg-amber-500" />
+                    <span className="h-2.5 w-2.5 rounded-sm bg-amber-600" />
                     Pending
                   </button>
                 </div>
@@ -377,13 +383,13 @@ export default function CivicPulse() {
               {/* Chart Bars */}
               <div className="mt-6">
                 {loading ? (
-                  <div className="h-56 w-full animate-pulse rounded-2xl bg-slate-800/60" />
+                  <div className="h-56 w-full animate-pulse rounded-2xl bg-slate-100" />
                 ) : trends.length === 0 ? (
-                  <div className="flex h-56 flex-col items-center justify-center text-slate-500 text-sm">
+                  <div className="flex h-56 flex-col items-center justify-center text-slate-400 text-sm">
                     <p>No complaints reported in this timeframe.</p>
                   </div>
                 ) : (
-                  <div className="relative flex h-56 items-end gap-1.5 overflow-x-auto border-b border-slate-800 pb-2">
+                  <div className="relative flex h-56 items-end gap-1.5 overflow-x-auto border-b border-slate-200 pb-2">
                     {trends.map((t) => {
                       const totalHeight = Math.max(
                         (t.total / maxTrend) * 100,
@@ -398,22 +404,22 @@ export default function CivicPulse() {
                           className="group relative flex h-full min-w-[26px] flex-1 flex-col items-center justify-end"
                         >
                           {/* Hover Tooltip */}
-                          <div className="pointer-events-none absolute bottom-full mb-2 hidden w-32 rounded-xl border border-slate-700 bg-slate-950 p-2 text-center text-[10px] text-white shadow-xl group-hover:block z-30">
-                            <p className="font-bold text-blue-300">{t.label}</p>
-                            <p className="mt-0.5 text-slate-300">
+                          <div className="pointer-events-none absolute bottom-full mb-2 hidden w-32 rounded-xl border border-slate-200 bg-white p-2 text-center text-[10px] text-slate-900 shadow-xl group-hover:block z-30">
+                            <p className="font-bold text-blue-900">{t.label}</p>
+                            <p className="mt-0.5 text-slate-600">
                               Total: <strong>{t.total}</strong>
                             </p>
-                            <p className="text-emerald-400">
+                            <p className="text-emerald-700 font-semibold">
                               Resolved: <strong>{t.resolved}</strong>
                             </p>
-                            <p className="text-amber-400">
+                            <p className="text-amber-700 font-semibold">
                               Pending: <strong>{t.pending}</strong>
                             </p>
                           </div>
 
                           {/* Count Label */}
                           {t.total > 0 && (
-                            <span className="mb-1 text-[10px] font-semibold text-slate-400">
+                            <span className="mb-1 text-[10px] font-semibold text-slate-500">
                               {t.total}
                             </span>
                           )}
@@ -450,9 +456,9 @@ export default function CivicPulse() {
             </div>
 
             {/* Category Breakdown (1 column) */}
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/90 p-6 shadow-sm">
-              <h2 className="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-4">
-                <FiLayers className="text-emerald-400" />
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-4">
+                <FiLayers className="text-emerald-600" />
                 Issue Categories
               </h2>
 
@@ -462,7 +468,7 @@ export default function CivicPulse() {
                     {[1, 2, 3, 4].map((i) => (
                       <div
                         key={i}
-                        className="h-10 w-full animate-pulse rounded-xl bg-slate-800/60"
+                        className="h-10 w-full animate-pulse rounded-xl bg-slate-100"
                       />
                     ))}
                   </div>
@@ -474,16 +480,16 @@ export default function CivicPulse() {
                   categories.slice(0, 6).map((c) => (
                     <div key={c.category} className="space-y-1.5">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-slate-200 capitalize">
+                        <span className="font-semibold text-slate-800 capitalize">
                           {c.category}
                         </span>
-                        <span className="text-slate-400">
+                        <span className="text-slate-500">
                           {c.count} ({c.percentage}%)
                         </span>
                       </div>
-                      <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
+                      <div className="h-2 w-full rounded-full bg-slate-100 overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-blue-500 to-emerald-400 rounded-full transition-all duration-500"
+                          className="h-full bg-gradient-to-r from-blue-600 to-emerald-500 rounded-full transition-all duration-500"
                           style={{ width: `${Math.min(100, c.percentage)}%` }}
                         />
                       </div>
@@ -495,16 +501,16 @@ export default function CivicPulse() {
           </section>
 
           {/* Section: Resolution Impact & Citizen Verification */}
-          <section className="rounded-3xl border border-emerald-900/40 bg-gradient-to-br from-emerald-950/20 via-slate-900/90 to-slate-950 p-6 sm:p-8 shadow-xl">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between border-b border-slate-800 pb-6">
+          <section className="rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50/50 via-white to-blue-50/30 p-6 sm:p-8 shadow-sm">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between border-b border-slate-200/80 pb-6">
               <div>
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-400">
+                <span className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-800">
                   <FiCheckCircle /> Citizen-Powered Transparency
                 </span>
-                <h2 className="mt-1 text-2xl font-black text-white">
+                <h2 className="mt-1 text-2xl font-bold text-slate-900">
                   Resolution Impact & Verification
                 </h2>
-                <p className="mt-1 text-xs text-slate-300 max-w-2xl leading-relaxed">
+                <p className="mt-1 text-xs text-slate-600 max-w-2xl leading-relaxed">
                   Unlike traditional civic portals, Civic Connect puts closing confirmation in residents' hands. A ticket is not genuinely resolved until the citizen inspects the photo evidence and verifies the work.
                 </p>
               </div>
@@ -512,23 +518,32 @@ export default function CivicPulse() {
               <div className="flex items-center gap-3">
                 <Link
                   to="/citizen/track"
-                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-600/40 bg-emerald-950/40 px-4 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-900/50 transition"
+                  className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-white px-4 py-2 text-xs font-semibold text-emerald-800 shadow-sm hover:bg-emerald-50 transition"
                 >
                   <FiActivity /> Track My Complaint
                 </Link>
-                <Link
-                  to="/login"
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-500 transition shadow-sm"
-                >
-                  Sign In to Verify
-                </Link>
+                {isCitizenPortal ? (
+                  <Link
+                    to="/citizen/complaints"
+                    className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-800 transition shadow-sm"
+                  >
+                    My Complaints
+                  </Link>
+                ) : (
+                  <Link
+                    to="/login"
+                    className="inline-flex items-center gap-2 rounded-xl bg-blue-900 px-4 py-2 text-xs font-semibold text-white hover:bg-blue-800 transition shadow-sm"
+                  >
+                    Sign In to Verify
+                  </Link>
+                )}
               </div>
             </div>
 
             <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4">
-                <p className="text-xs text-slate-400">Resolutions Submitted</p>
-                <p className="mt-1 text-2xl font-black text-white">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <p className="text-xs font-semibold text-slate-500">Resolutions Submitted</p>
+                <p className="mt-1 text-2xl font-black text-slate-900">
                   {loading ? "..." : resolutionImpact.resolutionsSubmitted}
                 </p>
                 <p className="mt-1 text-[11px] text-slate-500">
@@ -536,42 +551,42 @@ export default function CivicPulse() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-emerald-900/30 bg-emerald-950/20 p-4">
-                <p className="text-xs text-emerald-400 font-semibold">
+              <div className="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-4 shadow-sm">
+                <p className="text-xs text-emerald-800 font-semibold">
                   Citizen Verified Resolved
                 </p>
-                <p className="mt-1 text-2xl font-black text-emerald-300">
+                <p className="mt-1 text-2xl font-black text-emerald-700">
                   {loading ? "..." : resolutionImpact.citizenVerified}
                 </p>
-                <p className="mt-1 text-[11px] text-emerald-400/80">
+                <p className="mt-1 text-[11px] text-emerald-700">
                   Confirmed satisfied by residents
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-amber-900/30 bg-amber-950/20 p-4">
-                <p className="text-xs text-amber-400 font-semibold">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 shadow-sm">
+                <p className="text-xs text-amber-800 font-semibold">
                   Flagged Unresolved & Reopened
                 </p>
-                <p className="mt-1 text-2xl font-black text-amber-300">
+                <p className="mt-1 text-2xl font-black text-amber-700">
                   {loading ? "..." : resolutionImpact.citizenFlagged}
                 </p>
-                <p className="mt-1 text-[11px] text-amber-400/80">
+                <p className="mt-1 text-[11px] text-amber-700">
                   Returned to crew for remediation
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-purple-900/30 bg-purple-950/20 p-4">
-                <p className="text-xs text-purple-400 font-semibold">
+              <div className="rounded-2xl border border-purple-200 bg-purple-50/80 p-4 shadow-sm">
+                <p className="text-xs text-purple-800 font-semibold">
                   Resolution Success Rate
                 </p>
-                <p className="mt-1 text-2xl font-black text-purple-300">
+                <p className="mt-1 text-2xl font-black text-purple-700">
                   {loading
                     ? "..."
                     : resolutionImpact.resolutionSuccessRate !== null
                     ? `${resolutionImpact.resolutionSuccessRate}%`
                     : "100%"}
                 </p>
-                <p className="mt-1 text-[11px] text-purple-400/80">
+                <p className="mt-1 text-[11px] text-purple-700">
                   Citizen approval on completion
                 </p>
               </div>
@@ -581,14 +596,14 @@ export default function CivicPulse() {
           {/* Section: Department Performance & Recent Improvements */}
           <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Department Accountability Table (2 columns) */}
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/90 p-6 shadow-sm lg:col-span-2">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                 <div>
-                  <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                    <FiLayers className="text-blue-400" />
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <FiLayers className="text-blue-700" />
                     Department Accountability
                   </h2>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     Resolution workload and efficiency across civic departments
                   </p>
                 </div>
@@ -600,7 +615,7 @@ export default function CivicPulse() {
                     {[1, 2, 3].map((i) => (
                       <div
                         key={i}
-                        className="h-12 w-full animate-pulse rounded-xl bg-slate-800/60"
+                        className="h-12 w-full animate-pulse rounded-xl bg-slate-100"
                       />
                     ))}
                   </div>
@@ -611,7 +626,7 @@ export default function CivicPulse() {
                 ) : (
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-slate-800 text-slate-400">
+                      <tr className="border-b border-slate-200 text-slate-500 font-semibold uppercase tracking-wider">
                         <th className="pb-3 font-semibold">Department</th>
                         <th className="pb-3 text-center font-semibold">Assigned</th>
                         <th className="pb-3 text-center font-semibold">Resolved</th>
@@ -619,29 +634,29 @@ export default function CivicPulse() {
                         <th className="pb-3 text-right font-semibold">Resolution Rate</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60">
+                    <tbody className="divide-y divide-slate-100 text-slate-700">
                       {departments.map((d) => (
-                        <tr key={d.name} className="hover:bg-slate-800/30">
-                          <td className="py-3.5 font-bold text-slate-200">
+                        <tr key={d.name} className="hover:bg-slate-50 transition">
+                          <td className="py-3.5 font-bold text-slate-900">
                             {d.name}
                           </td>
-                          <td className="py-3.5 text-center text-slate-300">
+                          <td className="py-3.5 text-center text-slate-600">
                             {d.total}
                           </td>
-                          <td className="py-3.5 text-center font-semibold text-emerald-400">
+                          <td className="py-3.5 text-center font-semibold text-emerald-700">
                             {d.resolved}
                           </td>
-                          <td className="py-3.5 text-center text-amber-400">
+                          <td className="py-3.5 text-center text-amber-700">
                             {d.pending + (d.inProgress || 0)}
                           </td>
-                          <td className="py-3.5 text-right font-bold text-slate-200">
+                          <td className="py-3.5 text-right font-bold text-slate-900">
                             <span
                               className={`rounded-md px-2 py-1 text-[11px] font-bold ${
                                 d.resolutionRate >= 70
-                                  ? "bg-emerald-950 text-emerald-300 border border-emerald-800"
+                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
                                   : d.resolutionRate >= 40
-                                  ? "bg-amber-950 text-amber-300 border border-amber-800"
-                                  : "bg-slate-800 text-slate-300"
+                                  ? "bg-amber-100 text-amber-800 border border-amber-200"
+                                  : "bg-slate-100 text-slate-700"
                               }`}
                             >
                               {d.resolutionRate}%
@@ -656,13 +671,13 @@ export default function CivicPulse() {
             </div>
 
             {/* Recent Verified Improvements (1 column) */}
-            <div className="rounded-3xl border border-slate-800 bg-slate-900/90 p-6 shadow-sm flex flex-col justify-between">
+            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm flex flex-col justify-between">
               <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2 border-b border-slate-800 pb-4">
-                  <FiCheckCircle className="text-emerald-400" />
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-4">
+                  <FiCheckCircle className="text-emerald-600" />
                   Recent Civic Improvements
                 </h2>
-                <p className="mt-1 text-xs text-slate-400">
+                <p className="mt-1 text-xs text-slate-500">
                   Privacy-safe log of recently completed municipal fixes
                 </p>
 
@@ -672,7 +687,7 @@ export default function CivicPulse() {
                       {[1, 2, 3].map((i) => (
                         <div
                           key={i}
-                          className="h-14 w-full animate-pulse rounded-xl bg-slate-800/60"
+                          className="h-14 w-full animate-pulse rounded-xl bg-slate-100"
                         />
                       ))}
                     </div>
@@ -684,18 +699,18 @@ export default function CivicPulse() {
                     recentImprovements.map((item, idx) => (
                       <div
                         key={`${item.id}-${idx}`}
-                        className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-3 hover:border-slate-700 transition"
+                        className="rounded-xl border border-slate-200 bg-slate-50/70 p-3 hover:bg-slate-100/70 transition"
                       >
                         <div className="flex items-center justify-between text-xs">
-                          <span className="font-bold text-emerald-400">
+                          <span className="font-bold text-emerald-700">
                             ✓ {item.department_name}
                           </span>
                           <span className="text-[10px] text-slate-500">
                             {formatTimeAgo(item.resolved_at)}
                           </span>
                         </div>
-                        <p className="mt-1 text-xs text-slate-300">
-                          Resolved a <span className="font-medium text-white capitalize">{item.category}</span> issue
+                        <p className="mt-1 text-xs text-slate-700">
+                          Resolved a <span className="font-semibold text-slate-900 capitalize">{item.category}</span> issue
                         </p>
                       </div>
                     ))
@@ -703,9 +718,9 @@ export default function CivicPulse() {
                 </div>
               </div>
 
-              <div className="mt-6 border-t border-slate-800 pt-4 text-center">
+              <div className="mt-6 border-t border-slate-100 pt-4 text-center">
                 <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1">
-                  <FiShield className="text-emerald-500" />
+                  <FiShield className="text-emerald-600" />
                   Resident anonymity and private locations protected
                 </p>
               </div>
@@ -713,23 +728,23 @@ export default function CivicPulse() {
           </section>
 
           {/* Civic Call to Action Banner */}
-          <section className="rounded-3xl border border-blue-900/40 bg-gradient-to-r from-blue-950/60 via-slate-900 to-slate-950 p-8 shadow-xl text-center">
+          <section className="rounded-2xl border border-blue-200 bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 p-8 shadow-sm text-center text-white">
             <h2 className="text-2xl font-bold text-white sm:text-3xl">
               Spot a civic issue in your neighborhood?
             </h2>
-            <p className="mx-auto mt-2 max-w-xl text-xs sm:text-sm text-slate-300">
+            <p className="mx-auto mt-2 max-w-xl text-xs sm:text-sm text-blue-100">
               Report potholes, streetlight blackouts, garbage dumps, or water leakages directly to municipal authorities with PRAGATI AI.
             </p>
             <div className="mt-6 flex flex-wrap items-center justify-center gap-4">
               <Link
-                to="/signup"
-                className="rounded-xl bg-blue-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-blue-500 transition"
+                to={isCitizenPortal ? "/citizen/report" : "/signup"}
+                className="rounded-xl bg-white px-6 py-3 text-sm font-bold text-blue-900 shadow-md hover:bg-blue-50 transition"
               >
                 Report an Issue Now
               </Link>
               <Link
                 to="/citizen/track"
-                className="rounded-xl border border-slate-700 bg-slate-900 px-6 py-3 text-sm font-semibold text-slate-200 hover:bg-slate-800 transition"
+                className="rounded-xl border border-blue-300/40 bg-blue-950/40 px-6 py-3 text-sm font-semibold text-white hover:bg-blue-900/60 transition"
               >
                 Track an Existing Ticket
               </Link>
@@ -738,8 +753,8 @@ export default function CivicPulse() {
         </div>
       </main>
 
-      <Footer />
+      {/* Standalone footer on public route only */}
+      {!isCitizenPortal && <Footer />}
     </div>
   );
 }
-

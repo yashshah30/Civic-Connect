@@ -37,7 +37,7 @@ export default function CitizenSidebar({ onLogout }) {
         },
         {
             name: "City Civic Pulse",
-            path: "/civic-pulse",
+            path: "/citizen/civic-pulse",
             icon: FiActivity,
         },
         {

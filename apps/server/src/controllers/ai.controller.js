@@ -712,6 +712,30 @@ export const handleConversationalAction = async (req, res) => {
         break;
       }
 
+      case "OUT_OF_SCOPE": {
+        responseMessage =
+          "I am **PRAGATI AI** (*Public Response & Grievance Assistance for Transparent Interaction*), the dedicated civic assistant built specifically for **Civic Connect**.\n\nI can only assist you with municipal issues, civic grievance reporting, status tracking, notifications, and city services in your municipality. I cannot assist with general knowledge, coding, mathematics, entertainment, or personal queries.\n\nHow may I help you with your civic grievances today?";
+
+        primaryAction = {
+          type: "START_COMPLAINT",
+          label: "Report a Civic Issue",
+          payload: { route: "/citizen/report" },
+        };
+        secondaryActions = [
+          {
+            type: "OPEN_PAGE",
+            label: "Track Complaints",
+            payload: { route: "/citizen/complaints" },
+          },
+          {
+            type: "OPEN_PAGE",
+            label: "City Civic Pulse",
+            payload: { route: "/citizen/civic-pulse" },
+          },
+        ];
+        break;
+      }
+
       case "GENERAL_CIVIC_GUIDANCE":
       default: {
         responseMessage =

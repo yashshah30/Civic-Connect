@@ -90,7 +90,7 @@ export default function CivicAI() {
     {
       id: 1,
       sender: "bot",
-      text: "Namaste! I am **PRAGATI AI**, your smart civic assistant for Civic Connect.\n\nYou can ask me to track your issues (*'meri complaint ka kya hua?'*), describe a problem to prepare a complaint draft, or explain municipal workflows. How can I help you today?",
+      text: "Namaste! I am **PRAGATI AI** (**P**ublic **R**esponse & **G**rievance **A**ssistance for **T**ransparent **I**nteraction), your smart civic assistant for **Civic Connect**.\n\nI can help you:\n• **Track Status**: Ask *'meri complaint ka kya hua?'* or give a complaint ID\n• **Draft Complaints**: Describe an issue (*'road pe gaddha hai'*, *'drainage overflow'*) to create a formal report\n• **Review Workflows**: Ask *'In Progress matlab kya?'* to understand municipal timelines\n• **Notifications**: Check your latest complaint updates\n\n*Note: I am dedicated strictly to Civic Connect municipal services.* How can I assist you today?",
       secondaryActions: [
         { label: "Track My Complaints", query: "meri complaint ka kya hua?" },
         { label: "Recent Complaints", query: "meri recent complaints dikhao" },
@@ -233,57 +233,70 @@ export default function CivicAI() {
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className="group fixed bottom-5 right-5 z-50 flex items-center gap-2.5 rounded-full bg-slate-900 px-4 py-3 text-sm font-medium text-white shadow-xl ring-1 ring-white/10 transition-all hover:scale-105 hover:bg-slate-800 hover:shadow-2xl sm:bottom-6 sm:right-6"
+          className="group fixed bottom-5 right-5 z-50 flex items-center gap-3 rounded-2xl bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 px-4 py-2.5 text-left text-white shadow-xl ring-1 ring-white/10 transition-all hover:scale-105 hover:shadow-2xl sm:bottom-6 sm:right-6"
           aria-label="Open PRAGATI AI Assistant"
         >
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500/20 text-blue-400">
-            <FiCpu className="text-sm" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 text-white shadow-sm ring-1 ring-blue-400/30">
+            <FiCpu className="text-base" />
           </div>
-          <span className="font-brand font-semibold tracking-wide text-white">
-            PRAGATI AI
-          </span>
-          <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-brand text-xs font-bold tracking-wide text-white">
+                PRAGATI AI
+              </span>
+              <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            </div>
+            <p className="text-[10px] font-medium text-blue-200/90">
+              Your Smart Civic Assistant
+            </p>
+          </div>
         </button>
       )}
 
       {/* Interactive Chat Window */}
       {isOpen && (
         <div
-          className="fixed bottom-20 right-4 z-50 flex h-[580px] w-[calc(100vw-2rem)] max-w-[420px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:bottom-24 sm:right-6 font-sans"
+          className="fixed bottom-20 right-4 z-50 flex h-[600px] w-[calc(100vw-2rem)] max-w-[440px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl sm:bottom-24 sm:right-6 font-sans"
           role="dialog"
           aria-label="PRAGATI AI Assistant"
         >
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-800 bg-slate-900 px-4 py-3.5 text-white">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-blue-400/30 bg-blue-600/30 text-blue-400">
-                <FiCpu className="text-lg" />
-              </div>
-
-              <div>
-                <div className="flex items-center gap-2">
-                  <h2 className="font-brand text-sm font-bold tracking-wide text-white">
-                    PRAGATI AI
-                  </h2>
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/15 px-1.5 py-0.5 text-[9px] font-medium text-emerald-400">
-                    <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
-                    Civic Assistant
-                  </span>
+          {/* Header with Official PRAGATI AI Branding */}
+          <div className="border-b border-slate-800 bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 px-4 py-3 text-white">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-md ring-2 ring-blue-400/30">
+                  <FiCpu className="text-xl" />
                 </div>
-                <p className="text-[11px] text-blue-200/80">
-                  Your Smart Civic Assistant • Real-Time Action
-                </p>
-              </div>
-            </div>
 
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="rounded-lg p-1.5 text-slate-300 transition hover:bg-white/10 hover:text-white"
-              aria-label="Close PRAGATI AI assistant"
-            >
-              <FiX className="text-lg" />
-            </button>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h2 className="font-brand text-sm font-bold tracking-wide text-white">
+                      PRAGATI AI
+                    </h2>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/20 px-1.5 py-0.5 text-[9px] font-medium text-emerald-300">
+                      <span className="h-1 w-1 animate-pulse rounded-full bg-emerald-400" />
+                      Civic Assistant
+                    </span>
+                  </div>
+
+                  <p className="truncate text-[10px] font-medium text-blue-200/90">
+                    Public Response & Grievance Assistance for Transparent Interaction
+                  </p>
+                  <p className="text-[9.5px] font-semibold tracking-wide text-emerald-400">
+                    Your Smart Civic Assistant
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="rounded-lg p-1 text-slate-300 transition hover:bg-white/10 hover:text-white"
+                aria-label="Close PRAGATI AI assistant"
+              >
+                <FiX className="text-lg" />
+              </button>
+            </div>
           </div>
 
           {/* Messages Feed */}

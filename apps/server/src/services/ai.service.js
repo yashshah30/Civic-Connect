@@ -79,16 +79,168 @@ export const validateDraftOutput = (output) => {
   };
 };
 
+/**
+ * Deterministic Civic Complaint Draft Generator.
+ * Used as a dependable fallback when Gemini API is unavailable, rate-limited,
+ * timed out, or unconfigured, ensuring citizens are NEVER blocked from submitting complaints.
+ */
+export const generateDeterministicCivicDraft = (input) => {
+  const text = String(input || "").trim();
+  const lower = text.toLowerCase();
+
+  // Category determination
+  let category = "other";
+  if (
+    lower.includes("road") ||
+    lower.includes("sadak") ||
+    lower.includes("pothole") ||
+    lower.includes("gaddha") ||
+    lower.includes("divider") ||
+    lower.includes("tar") ||
+    lower.includes("asphalt") ||
+    lower.includes("footpath") ||
+    lower.includes("sidewalk") ||
+    lower.includes("speed breaker")
+  ) {
+    category = "road";
+  } else if (
+    lower.includes("drain") ||
+    lower.includes("naala") ||
+    lower.includes("gutter") ||
+    lower.includes("sewer") ||
+    lower.includes("waterlogging") ||
+    lower.includes("overflow") ||
+    lower.includes("manhole") ||
+    lower.includes("choked") ||
+    lower.includes("blockage")
+  ) {
+    category = "drainage";
+  } else if (
+    lower.includes("water") ||
+    lower.includes("paani") ||
+    lower.includes("leak") ||
+    lower.includes("nal") ||
+    lower.includes("pipeline") ||
+    lower.includes("tank") ||
+    lower.includes("motor") ||
+    lower.includes("supply") ||
+    lower.includes("dirty water") ||
+    lower.includes("peene ka")
+  ) {
+    category = "water";
+  } else if (
+    lower.includes("kachra") ||
+    lower.includes("garbage") ||
+    lower.includes("trash") ||
+    lower.includes("waste") ||
+    lower.includes("dustbin") ||
+    lower.includes("bin") ||
+    lower.includes("dump") ||
+    lower.includes("safai") ||
+    lower.includes("badbu") ||
+    lower.includes("smell") ||
+    lower.includes("litter") ||
+    lower.includes("sweeping")
+  ) {
+    category = "sanitation";
+  }
+
+  // Priority determination
+  let priority = "medium";
+  if (
+    lower.includes("urgent") ||
+    lower.includes("emergency") ||
+    lower.includes("hazard") ||
+    lower.includes("danger") ||
+    lower.includes("khatarnak") ||
+    lower.includes("accident") ||
+    lower.includes("life") ||
+    lower.includes("open manhole") ||
+    lower.includes("hospital") ||
+    lower.includes("school") ||
+    lower.includes("severe") ||
+    lower.includes("electric wire") ||
+    lower.includes("shock") ||
+    lower.includes("fire")
+  ) {
+    priority = "urgent";
+  } else if (
+    lower.includes("high") ||
+    lower.includes("major") ||
+    lower.includes("heavy") ||
+    lower.includes("deep") ||
+    lower.includes("flood") ||
+    lower.includes("burst") ||
+    lower.includes("blocked") ||
+    lower.includes("broken") ||
+    lower.includes("multiple days")
+  ) {
+    priority = "high";
+  } else if (
+    lower.includes("minor") ||
+    lower.includes("small") ||
+    lower.includes("routine") ||
+    lower.includes("cosmetic")
+  ) {
+    priority = "low";
+  }
+
+  // Title generation
+  let title = "";
+  if (category === "road") {
+    if (lower.includes("pothole") || lower.includes("gaddha")) {
+      title = "Pothole Damage on Road Requiring Urgent Repair";
+    } else {
+      title = "Road Surface Repair and Maintenance Required";
+    }
+  } else if (category === "drainage") {
+    if (lower.includes("overflow") || lower.includes("waterlog")) {
+      title = "Drainage Overflow and Waterlogging on Public Street";
+    } else {
+      title = "Drainage Blockage and Sewage Clearance Required";
+    }
+  } else if (category === "water") {
+    if (lower.includes("leak") || lower.includes("burst")) {
+      title = "Water Pipeline Leakage and Supply Disruption";
+    } else {
+      title = "Municipal Water Supply and Quality Issue";
+    }
+  } else if (category === "sanitation") {
+    title = "Garbage and Waste Accumulation Requiring Clearance";
+  } else {
+    if (
+      lower.includes("light") ||
+      lower.includes("pole") ||
+      lower.includes("khamba") ||
+      lower.includes("dark")
+    ) {
+      title = "Streetlight Malfunction and Dark Spot Hazard";
+    } else {
+      title = "Civic Infrastructure Maintenance Request";
+    }
+  }
+
+  // Structured objective description
+  const cleanInput = text.charAt(0).toUpperCase() + text.slice(1);
+  const description = `${cleanInput}\n\nObserved Municipal Impact:\nThis issue impacts public safety, environmental hygiene, and neighborhood accessibility. Prompt inspection and verified resolution by the responsible municipal division are requested.`;
+
+  return {
+    title: title.slice(0, 80),
+    description,
+    category,
+    priority,
+  };
+};
+
 export const generateDraftComplaint = async (input, options = {}) => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey || !apiKey.trim()) {
-    const err = new Error("GEMINI_API_KEY is not configured on the server");
-    err.code = "MISSING_API_KEY";
-    throw err;
+    console.warn("GEMINI_API_KEY is not configured, using deterministic civic draft generator");
+    return validateDraftOutput(generateDeterministicCivicDraft(input));
   }
 
   const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
-  const modelName = process.env.GEMINI_MODEL || options.model || "gemini-3.5-flash-lite";
+  const modelName = process.env.GEMINI_MODEL || options.model || "gemini-2.5-flash";
 
   const timeoutMs = options.timeoutMs || 25000;
   const timeoutPromise = new Promise((_, reject) => {
@@ -138,19 +290,22 @@ export const generateDraftComplaint = async (input, options = {}) => {
   try {
     response = await Promise.race([callModel(modelName), timeoutPromise]);
   } catch (err) {
-    if (
-      modelName === "gemini-3.5-flash-lite" &&
-      (err?.message?.includes("not found") || err?.status === 404 || err?.message?.includes("unavailable") || err?.message?.includes("no longer available"))
-    ) {
-      console.warn("gemini-3.5-flash-lite unavailable, attempting fallback to gemini-3.5-flash");
-      response = await Promise.race([callModel("gemini-3.5-flash"), timeoutPromise]);
-    } else {
-      throw err;
+    console.warn(`Primary model ${modelName} failed (${err?.message || err}), trying gemini-1.5-flash fallback`);
+    try {
+      response = await Promise.race([callModel("gemini-1.5-flash"), timeoutPromise]);
+    } catch (fallbackErr) {
+      console.warn("Gemini API models failed, falling back to deterministic civic draft generator:", fallbackErr?.message || fallbackErr);
+      return validateDraftOutput(generateDeterministicCivicDraft(input));
     }
   }
 
-  const parsed = parseJsonResponse(response.text);
-  return validateDraftOutput(parsed);
+  try {
+    const parsed = parseJsonResponse(response.text);
+    return validateDraftOutput(parsed);
+  } catch (parseErr) {
+    console.warn("Failed to parse Gemini response, falling back to deterministic civic draft:", parseErr?.message);
+    return validateDraftOutput(generateDeterministicCivicDraft(input));
+  }
 };
 
 
@@ -165,10 +320,67 @@ export const ALLOWED_INTENTS = [
   "CHECK_NOTIFICATIONS",
   "OPEN_PAGE",
   "GENERAL_CIVIC_GUIDANCE",
+  "OUT_OF_SCOPE",
 ];
 
 export const classifyIntentFast = (text, context = {}) => {
   const q = String(text || "").trim().toLowerCase();
+
+  // 0. Strict Civic Scope Guard
+  // PRAGATI AI is strictly municipal civic-connect-specific.
+  // Refuse unrelated requests (coding, math, general trivia, entertainment, personal advice)
+  const isOutOfScopeQuery = () => {
+    // Coding & technical development
+    const codingTerms = [
+      "python", "javascript", "typescript", "react", "node", "java", "c++", "c#", "golang",
+      "function", "write a code", "write code", "solve bug", "syntax", "regex", "algorithm",
+      "sql query", "select * from", "html", "css", "docker", "kubernetes", "api endpoint",
+      "git commit", "github", "npm install", "compile", "script", "for loop", "while loop",
+    ];
+    if (codingTerms.some((t) => q.includes(t))) return true;
+
+    // Mathematics & calculations (e.g. "what is 25 * 40", "solve 2x + 5 = 10", "derivative of")
+    const mathTerms = [
+      "calculate", "derivative", "integral", "equation", "sqrt", "math problem",
+      "divided by", "multiplied by", "sine", "cosine", "solve for x", "matrix",
+    ];
+    if (mathTerms.some((t) => q.includes(t))) return true;
+    if (/\b\d+\s*[\+\*\/\^]\s*\d+\b/.test(q)) return true;
+
+    // Trivia, entertainment, general knowledge, creative writing
+    const triviaTerms = [
+      "who is the president", "who is the prime minister", "who is narendra modi",
+      "capital of", "tell me a joke", "write a poem", "write a song", "write a story",
+      "write an essay", "movie review", "who won the", "world cup", "cricket score",
+      "actor", "actress", "lyrics", "dinosaur", "astronomy", "black hole", "tell a story",
+      "standup comedy", "cinema", "recipe for", "how to cook",
+    ];
+    if (triviaTerms.some((t) => q.includes(t))) return true;
+
+    // Personal / Medical / Financial
+    const personalTerms = [
+      "medical advice", "doctor", "headache", "cure for", "stocks to buy",
+      "bitcoin", "cryptocurrency", "investment advice", "horoscope", "astrology",
+      "relationship advice", "dating advice", "weight loss", "diet plan",
+    ];
+    if (personalTerms.some((t) => q.includes(t))) return true;
+
+    // Generic AI persona prompts
+    const aiTerms = [
+      "chatgpt", "openai", "claude", "pretend you are", "roleplay as",
+      "translate this text to french", "translate to spanish", "write an email to my boss",
+    ];
+    if (aiTerms.some((t) => q.includes(t))) return true;
+
+    return false;
+  };
+
+  if (isOutOfScopeQuery()) {
+    return {
+      intent: "OUT_OF_SCOPE",
+      confidence: 0.99,
+    };
+  }
 
   // 1. Specific complaint ID search (e.g. "CC-1234", "CC-2026-8941", or full UUID)
   const idMatch = text.match(/\b(CC-[0-9A-Za-z-]+|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\b/i);
@@ -287,11 +499,14 @@ export const classifyIntentFast = (text, context = {}) => {
     }
   }
 
-  // 6. Status Explanation ("In Progress matlab", "pending ka kya meaning hai")
+  // 6. Status Explanation ("In Progress matlab", "pending ka kya meaning hai", "What does under review mean?")
   if (
     q.includes("matlab") ||
     q.includes("meaning") ||
     q.includes("means") ||
+    q.includes("mean") ||
+    q.includes("explain") ||
+    q.includes("what does") ||
     q.includes("kya hota hai") ||
     q.includes("kya hoti hai")
   ) {
@@ -389,7 +604,7 @@ export const classifyIntentFast = (text, context = {}) => {
     };
   }
 
-  // 9. Start / Report a Complaint ("complaint karni hai", "road ka issue report karna hai")
+  // 9. Start / Report a Complaint ("complaint karni hai", "I want to report a pothole")
   if (
     q.includes("complaint karni") ||
     q.includes("complaint karna") ||
@@ -398,7 +613,11 @@ export const classifyIntentFast = (text, context = {}) => {
     q.includes("file complaint") ||
     q.includes("raise complaint") ||
     q.includes("new complaint") ||
-    q.includes("shikayat darj")
+    q.includes("shikayat darj") ||
+    q.includes("want to report") ||
+    q.includes("report a") ||
+    q.includes("report an") ||
+    q.includes("file a")
   ) {
     return {
       intent: "START_COMPLAINT",
@@ -410,6 +629,7 @@ export const classifyIntentFast = (text, context = {}) => {
   // 10. Natural Language issue description without explicit command
   // e.g. "mere ghar ke paas drainage overflow ho raha hai aur road pe paani bhar gaya hai"
   const problemIndicators = [
+    "pothole",
     "overflow",
     "paani bhar",
     "leakage",
@@ -418,11 +638,13 @@ export const classifyIntentFast = (text, context = {}) => {
     "band hai",
     "nahi aa raha",
     "kachra",
+    "garbage",
     "badbu",
     "dark",
     "khamba",
     "light band",
     "broken",
+    "sewage",
   ];
   if (
     problemIndicators.some((w) => q.includes(w)) &&
@@ -472,7 +694,7 @@ export const detectCivicIntent = async (userInput, context = {}) => {
 
   try {
     const ai = new GoogleGenAI({ apiKey: apiKey.trim() });
-    const modelName = process.env.GEMINI_MODEL || "gemini-3.5-flash-lite";
+    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
     const prompt = `You are the intent classifier for PRAGATI AI in Civic Connect.
 Analyze the user message (which may be in English, Hindi, or Hinglish) and map it strictly into one of the allowed civic intents:
@@ -484,6 +706,7 @@ Analyze the user message (which may be in English, Hindi, or Hinglish) and map i
 - EXPLAIN_PRIORITY: user asks about priority meaning (Urgent, High, Medium, Low).
 - CHECK_NOTIFICATIONS: user asks about notifications or updates.
 - OPEN_PAGE: user wants to navigate to a page (profile, dashboard, report, complaints).
+- OUT_OF_SCOPE: queries unrelated to Civic Connect municipal services (such as coding, math, general knowledge, entertainment, personal/medical advice).
 - GENERAL_CIVIC_GUIDANCE: greetings, general civic questions, or unclear requests.
 
 Context: ${JSON.stringify(context)}
