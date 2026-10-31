@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
     FiSearch,
     FiMapPin,
@@ -308,23 +309,31 @@ const TrackComplaint = () => {
                         </Card>
 
                         {/* Success message */}
-                        {complaint.status === "Resolved" && (
-                            <div className="flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 p-5 text-green-800">
-                                <FiCheckCircle
-                                    className="mt-0.5 shrink-0"
-                                    size={22}
-                                />
+                        {complaint.status?.toLowerCase() === "resolved" && (
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-emerald-900 shadow-xs">
+                                <div className="flex items-start gap-3">
+                                    <FiCheckCircle
+                                        className="mt-0.5 shrink-0 text-emerald-600"
+                                        size={22}
+                                    />
 
-                                <div>
-                                    <p className="font-semibold">
-                                        Complaint Resolved
-                                    </p>
+                                    <div>
+                                        <p className="font-bold">
+                                            Resolution Proof Submitted
+                                        </p>
 
-                                    <p className="mt-1 text-sm">
-                                        Your complaint has been successfully
-                                        resolved by the concerned department.
-                                    </p>
+                                        <p className="mt-1 text-sm text-emerald-800">
+                                            Your complaint has been marked resolved. Inspect the photographic evidence and verify the resolution.
+                                        </p>
+                                    </div>
                                 </div>
+
+                                <Link
+                                    to={`/citizen/complaints/${complaint.id || complaintId}`}
+                                    className="shrink-0 inline-flex items-center justify-center rounded-xl bg-emerald-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-800 transition shadow-xs"
+                                >
+                                    View Evidence & Verify
+                                </Link>
                             </div>
                         )}
                     </div>

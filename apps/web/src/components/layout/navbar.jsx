@@ -55,6 +55,13 @@ export default function Navbar() {
           >
             FAQ
           </a>
+          <Link
+            to="/civic-pulse"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700 transition hover:text-blue-900"
+          >
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Civic Pulse</span>
+          </Link>
         </div>
 
         {/* Auth Buttons & Mobile Menu Button */}
@@ -138,6 +145,14 @@ export default function Navbar() {
             >
               FAQ
             </a>
+            <Link
+              to="/civic-pulse"
+              onClick={() => setMobileMenuOpen(false)}
+              className="flex items-center gap-1.5 text-sm font-semibold text-slate-700 hover:text-blue-900"
+            >
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>City Civic Pulse</span>
+            </Link>
           </div>
         </div>
       )}

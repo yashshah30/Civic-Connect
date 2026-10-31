@@ -9,11 +9,13 @@ import {
   updateComplaintStatus,
   getAuthorityComplaints,
   getAuthorityComplaintById,
+  getAuthorityAnalytics,
   updateComplaint,
   getComplaintStatusHistory,
   createResolution,
   getComplaintResolution,
   createComplaintVerification,
+  getPublicCivicPulseAnalytics,
 } from "../controllers/complaint.controller.js";
 
 import { authMiddleware } from "../middleware/auth.middleware.js";
@@ -50,6 +52,17 @@ router.get(
       accessTokenPresent: !!req.user.accessToken,
     });
   }
+);
+
+// Public: City Civic Pulse Analytics (public transparency, no auth required)
+router.get("/public/analytics", getPublicCivicPulseAnalytics);
+
+// Authority: analytics dashboard data
+router.get(
+  "/authority/analytics",
+  authMiddleware,
+  requireRole("authority"),
+  getAuthorityAnalytics
 );
 
 // Authority: get all complaints
@@ -107,11 +120,11 @@ router.post(
   createResolution
 );
 
-// Citizen: get resolution proof
+// Citizen & Authority: get resolution proof
 router.get(
   "/:id/resolution",
   authMiddleware,
-  requireRole("citizen"),
+  requireRole("citizen", "authority"),
   getComplaintResolution
 );
 

@@ -1,5 +1,6 @@
 import LocationPicker from "../../components/ui/LocationPicker";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
 FiCheckCircle,
 FiMapPin,
@@ -55,10 +56,32 @@ const [locationLoading, setLocationLoading] = useState(false);
 const [successMessage, setSuccessMessage] = useState("");
 
 // PRAGATI AI State
+const location = useLocation();
 const [aiLoading, setAiLoading] = useState(false);
 const [aiError, setAiError] = useState("");
 const [aiSuccessMessage, setAiSuccessMessage] = useState("");
 const [aiDraft, setAiDraft] = useState(null);
+
+useEffect(() => {
+    if (location.state?.draft) {
+        const d = location.state.draft;
+        setForm((previous) => ({
+            ...previous,
+            title: d.title || previous.title,
+            description: d.description || previous.description,
+            category: normalizeCategory(d.category) || previous.category,
+            priority: (d.priority || previous.priority || "medium").toLowerCase(),
+        }));
+        setAiSuccessMessage(
+            "PRAGATI AI draft loaded! Please verify the details below, confirm your location on the map, and submit."
+        );
+    } else if (location.state?.initialDescription) {
+        setForm((previous) => ({
+            ...previous,
+            description: location.state.initialDescription,
+        }));
+    }
+}, [location.state]);
 
 const handleAssistWithAI = async () => {
     setAiError("");

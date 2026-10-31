@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { FiCheckCircle, FiUploadCloud, FiImage, FiClock } from "react-icons/fi";
 import AssignComplaintModal from "../../components/authority/AssignComplaintModal";
 import StatusUpdateModal from "../../components/authority/StatusUpdateModal";
+import SubmitResolutionModal from "../../components/authority/SubmitResolutionModal";
+import ResolutionEvidenceViewer from "../../components/resolution/ResolutionEvidenceViewer";
 
 const API_BASE_URL =
   import.meta.env.VITE_API_URL ||
@@ -30,15 +33,25 @@ const formatDate = (date) => {
     return "Date unavailable";
   }
 
-  return new Date(date).toLocaleString();
+  try {
+    return new Date(date).toLocaleString("en-IN", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  } catch {
+    return date;
+  }
 };
 
 export default function AuthorityComplaintDetails() {
   const { id } = useParams();
 
   const [complaint, setComplaint] = useState(null);
+  const [resolution, setResolution] = useState(null);
+  const [verification, setVerification] = useState(null);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [isResolutionModalOpen, setIsResolutionModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -77,7 +90,33 @@ export default function AuthorityComplaintDetails() {
     }
   };
 
-    const fetchComplaint = async () => {
+  const fetchResolution = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) return;
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/complaints/${id}/resolution`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setResolution(data.resolution || null);
+          setVerification(data.verification || null);
+        }
+      }
+    } catch (resErr) {
+      console.warn("Could not load resolution data:", resErr);
+    }
+  };
+
+  const fetchComplaint = async () => {
     try {
       setLoading(true);
       setError("");
@@ -102,18 +141,14 @@ export default function AuthorityComplaintDetails() {
       const data = await response.json();
 
       if (!response.ok || !data.success) {
-        throw new Error(
-          data.message || "Failed to load complaint."
-        );
+        throw new Error(data.message || "Failed to load complaint.");
       }
 
       setComplaint(data.complaint);
+      await fetchResolution();
     } catch (error) {
       console.error("Fetch complaint error:", error);
-
-      setError(
-        error.message || "Failed to load complaint."
-      );
+      setError(error.message || "Failed to load complaint.");
     } finally {
       setLoading(false);
     }
@@ -123,12 +158,19 @@ export default function AuthorityComplaintDetails() {
     fetchComplaint();
   }, [id]);
 
+  const handleResolutionSuccess = (newResolution) => {
+    setResolution(newResolution);
+    setComplaint((prev) => ({
+      ...prev,
+      status: "resolved",
+      updated_at: new Date().toISOString(),
+    }));
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-50">
-        <p className="text-sm text-slate-500">
-          Loading complaint...
-        </p>
+        <p className="text-sm text-slate-500">Loading complaint...</p>
       </div>
     );
   }
@@ -139,15 +181,9 @@ export default function AuthorityComplaintDetails() {
         <nav className="border-b bg-white">
           <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
             <div>
-              <h1 className="text-xl font-bold text-blue-900">
-                Civic Connect
-              </h1>
-
-              <p className="text-xs text-slate-500">
-                Authority Portal
-              </p>
+              <h1 className="text-xl font-bold text-blue-900">Civic Connect</h1>
+              <p className="text-xs text-slate-500">Authority Portal</p>
             </div>
-
             <Link
               to="/authority/complaints"
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -162,7 +198,6 @@ export default function AuthorityComplaintDetails() {
             <h2 className="text-lg font-semibold text-red-800">
               Unable to load complaint
             </h2>
-
             <p className="mt-2 text-sm text-red-700">
               {error || "Complaint not found."}
             </p>
@@ -174,22 +209,32 @@ export default function AuthorityComplaintDetails() {
 
   const priority = formatPriority(complaint.priority);
   const status = complaint.status || "submitted";
+  const initialMedia = complaint.complaint_media?.[0]?.file_url || "";
+
+  // Clearly differentiate resolution & verification status
+  const displayStatus = (() => {
+    if (resolution) {
+      if (!verification) {
+        return "Resolution Submitted (Awaiting Verification)";
+      }
+      if (verification.verification_status === "resolved") {
+        return "Citizen Verified";
+      }
+      if (verification.verification_status === "still_unresolved") {
+        return "Citizen Flagged Unresolved";
+      }
+    }
+    return formatStatus(status);
+  })();
 
   return (
     <div className="min-h-screen bg-slate-50">
-
       {/* Navbar */}
       <nav className="border-b bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-
           <div>
-            <h1 className="text-xl font-bold text-blue-900">
-              Civic Connect
-            </h1>
-
-            <p className="text-xs text-slate-500">
-              Authority Portal
-            </p>
+            <h1 className="text-xl font-bold text-blue-900">Civic Connect</h1>
+            <p className="text-xs text-slate-500">Authority Portal</p>
           </div>
 
           <Link
@@ -198,25 +243,19 @@ export default function AuthorityComplaintDetails() {
           >
             Back to Complaints
           </Link>
-
         </div>
       </nav>
 
       {/* Main */}
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-8 sm:px-6 lg:px-8">
-
         {/* Header */}
         <section>
-
-          <p className="text-sm font-medium text-blue-800">
-            Complaint Details
-          </p>
+          <p className="text-sm font-medium text-blue-800">Complaint Details</p>
 
           <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-
             <div>
               <h2 className="text-3xl font-bold text-slate-900">
-                {complaint.title}
+                {complaint.title || complaint.category || "Complaint"}
               </h2>
 
               <p className="mt-1 break-all text-sm text-slate-500">
@@ -227,175 +266,169 @@ export default function AuthorityComplaintDetails() {
             <span className="w-fit rounded-full bg-orange-100 px-4 py-2 text-sm font-semibold text-orange-700">
               {priority} Priority
             </span>
-
           </div>
-
         </section>
 
         {/* Complaint Information */}
         <section className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-
-          {/* Main Complaint */}
+          {/* Main Column */}
           <div className="space-y-6 lg:col-span-2">
+            {/* Resolution Center Viewer (if resolution exists) */}
+            {resolution && (
+              <ResolutionEvidenceViewer
+                resolution={resolution}
+                verification={verification}
+                complaintTitle={complaint.title}
+              />
+            )}
 
+            {/* Complaint Information Card */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-
               <h3 className="text-lg font-semibold text-slate-900">
                 Complaint Information
               </h3>
 
               <div className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
-
                 <div>
-                  <p className="text-sm text-slate-500">
-                    Complaint ID
-                  </p>
-
+                  <p className="text-sm text-slate-500">Complaint ID</p>
                   <p className="mt-1 break-all font-semibold text-slate-800">
                     {complaint.id}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-sm text-slate-500">
-                    Category
-                  </p>
-
-                  <p className="mt-1 font-semibold text-slate-800">
+                  <p className="text-sm text-slate-500">Category</p>
+                  <p className="mt-1 font-semibold text-slate-800 capitalize">
                     {complaint.category}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-sm text-slate-500">
-                    Date Submitted
-                  </p>
-
+                  <p className="text-sm text-slate-500">Date Submitted</p>
                   <p className="mt-1 font-semibold text-slate-800">
                     {formatDate(complaint.created_at)}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-sm text-slate-500">
-                    Current Status
-                  </p>
-
-                  <span className="mt-1 inline-block rounded-full bg-blue-100 px-3 py-1 text-sm font-medium text-blue-700">
-                    {formatStatus(status)}
+                  <p className="text-sm text-slate-500">Current Status</p>
+                  <span
+                    className={`mt-1 inline-block rounded-full px-3 py-1 text-sm font-medium ${
+                      resolution && !verification
+                        ? "bg-amber-100 text-amber-800 border border-amber-300"
+                        : verification?.verification_status === "resolved"
+                        ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                        : verification?.verification_status === "still_unresolved"
+                        ? "bg-rose-100 text-rose-800 border border-rose-300"
+                        : "bg-blue-100 text-blue-700"
+                    }`}
+                  >
+                    {displayStatus}
                   </span>
                 </div>
 
                 <div>
-                  <p className="text-sm text-slate-500">
-                    Department
-                  </p>
-
+                  <p className="text-sm text-slate-500">Department</p>
                   <p className="mt-1 break-all font-semibold text-slate-800">
-                    {complaint.department_id || "Not assigned"}
+                    {complaint.department?.name ||
+                      complaint.department_id ||
+                      "Not assigned"}
                   </p>
                 </div>
-
               </div>
 
-              <div className="mt-6">
-
-                <p className="text-sm text-slate-500">
-                  Description
-                </p>
-
+              <div className="mt-6 border-t border-slate-100 pt-4">
+                <p className="text-sm text-slate-500">Description</p>
                 <p className="mt-2 leading-7 text-slate-700">
                   {complaint.description}
                 </p>
-
               </div>
-
             </div>
+
+            {/* Citizen Submitted Evidence Images */}
+            {complaint.complaint_media?.length > 0 && (
+              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <FiImage className="text-blue-900" />
+                  Initial Citizen Photos
+                </h3>
+                <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  {complaint.complaint_media.map((media) => (
+                    <div
+                      key={media.id}
+                      className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50"
+                    >
+                      <img
+                        src={media.file_url}
+                        alt={media.file_name || "Complaint evidence"}
+                        className="h-56 w-full object-cover"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Location */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-
-              <h3 className="text-lg font-semibold text-slate-900">
-                Location
-              </h3>
-
+              <h3 className="text-lg font-semibold text-slate-900">Location</h3>
               <p className="mt-3 text-slate-700">
                 {complaint.address || "Address not provided"}
               </p>
-
-              <div className="mt-4 flex h-48 items-center justify-center rounded-lg bg-slate-100">
-
-                <div className="text-center">
-
-                  <div className="text-3xl">
-                    📍
-                  </div>
-
-                  <p className="mt-2 text-sm font-medium text-slate-600">
-                    Map Location
-                  </p>
-
-                  <p className="text-xs text-slate-400">
-                    Map integration will be added later.
-                  </p>
-
-                </div>
-
-              </div>
-
+              {complaint.latitude != null && complaint.longitude != null && (
+                <p className="mt-1 text-xs text-slate-500">
+                  Coordinates: {complaint.latitude}, {complaint.longitude}
+                </p>
+              )}
             </div>
-
           </div>
 
-          {/* Citizen + Actions */}
+          {/* Sidebar */}
           <div className="space-y-6">
-
             {/* Citizen Information */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-
               <h3 className="text-lg font-semibold text-slate-900">
                 Citizen Information
               </h3>
-
               <div className="mt-5 space-y-4">
-
                 <div>
-                  <p className="text-sm text-slate-500">
-                    Citizen ID
-                  </p>
-
+                  <p className="text-sm text-slate-500">Citizen ID</p>
                   <p className="mt-1 break-all font-semibold text-slate-800">
                     {complaint.user_id}
                   </p>
                 </div>
-
                 <div>
-                  <p className="text-sm text-slate-500">
-                    Location
-                  </p>
-
+                  <p className="text-sm text-slate-500">Reported Address</p>
                   <p className="mt-1 text-slate-700">
                     {complaint.address || "Not provided"}
                   </p>
                 </div>
-
               </div>
-
             </div>
 
-            {/* Authority Actions */}
+            {/* Authority Actions & Resolution Center */}
             <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-
               <h3 className="text-lg font-semibold text-slate-900">
                 Authority Actions
               </h3>
 
               <div className="mt-4 space-y-3">
+                {/* Submit / Update Resolution Proof Button */}
+                <button
+                  type="button"
+                  onClick={() => setIsResolutionModalOpen(true)}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700"
+                >
+                  <FiCheckCircle className="text-base" />
+                  {resolution
+                    ? "Update Resolution Proof"
+                    : "Submit Resolution Proof"}
+                </button>
 
                 <button
                   type="button"
                   onClick={() => setIsAssignModalOpen(true)}
-                  className="w-full rounded-lg bg-blue-900 px-4 py-3 text-sm font-medium text-white hover:bg-blue-800"
+                  className="w-full rounded-xl bg-blue-900 px-4 py-3 text-sm font-medium text-white hover:bg-blue-800"
                 >
                   Assign Department
                 </button>
@@ -403,38 +436,48 @@ export default function AuthorityComplaintDetails() {
                 <button
                   type="button"
                   onClick={() => setIsStatusModalOpen(true)}
-                  className="w-full rounded-lg border border-blue-900 px-4 py-3 text-sm font-medium text-blue-900 transition hover:bg-blue-50"
+                  className="w-full rounded-xl border border-blue-900 px-4 py-3 text-sm font-medium text-blue-900 transition hover:bg-blue-50"
                 >
                   Change Status
                 </button>
-
-                <button
-                  type="button"
-                  disabled
-                  className="w-full cursor-not-allowed rounded-lg border border-slate-300 px-4 py-3 text-sm font-medium text-slate-700 opacity-50"
-                >
-                  Add Comment
-                </button>
-
               </div>
-
             </div>
 
+            {/* Quick Resolution Summary Card */}
+            {resolution && (
+              <div className="rounded-xl border border-emerald-200 bg-emerald-50/60 p-5 shadow-sm">
+                <div className="flex items-center gap-2 text-emerald-800 font-semibold text-sm">
+                  <FiCheckCircle className="text-base" />
+                  Resolution Recorded
+                </div>
+                <p className="mt-2 text-xs text-slate-600 leading-relaxed line-clamp-3">
+                  {resolution.resolution_description}
+                </p>
+                <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 border-t border-emerald-100 pt-2">
+                  <span>Resolved: {formatDate(resolution.created_at)}</span>
+                  {verification ? (
+                    <span className="font-semibold text-emerald-700">
+                      Citizen Verified
+                    </span>
+                  ) : (
+                    <span className="font-medium text-amber-700">
+                      Awaiting Verification
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
-
         </section>
 
         {/* Status Timeline */}
         <section className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-
           <h3 className="text-lg font-semibold text-slate-900">
             Status Timeline
           </h3>
 
           <div className="mt-6">
-
             <div className="flex gap-4">
-
               <div className="flex flex-col items-center">
                 <div className="h-4 w-4 rounded-full bg-blue-800" />
               </div>
@@ -442,25 +485,27 @@ export default function AuthorityComplaintDetails() {
               <div className="pb-8">
                 <div className="flex flex-wrap items-center gap-2">
                   <h4 className="font-semibold text-slate-800">
-                    {formatStatus(status)}
+                    {displayStatus}
                   </h4>
 
                   <span className="text-xs text-slate-400">
-                    {formatDate(complaint.updated_at)}
+                    {formatDate(complaint.updated_at || complaint.created_at)}
                   </span>
                 </div>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Current complaint status.
+                  {resolution && !verification
+                    ? "Resolution evidence submitted by authority; awaiting citizen verification."
+                    : verification?.verification_status === "resolved"
+                    ? "Resolution confirmed and closed by citizen."
+                    : verification?.verification_status === "still_unresolved"
+                    ? "Citizen flagged resolution as incomplete; complaint reopened."
+                    : "Current complaint status."}
                 </p>
               </div>
-
             </div>
-
           </div>
-
         </section>
-
       </main>
 
       <AssignComplaintModal
@@ -479,6 +524,14 @@ export default function AuthorityComplaintDetails() {
         onUpdate={handleStatusUpdate}
       />
 
+      <SubmitResolutionModal
+        isOpen={isResolutionModalOpen}
+        complaintId={complaint.id}
+        complaintTitle={complaint.title}
+        initialBeforeImageUrl={initialMedia}
+        onClose={() => setIsResolutionModalOpen(false)}
+        onSuccess={handleResolutionSuccess}
+      />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 // Landing & Authentication
 import Landing from "../pages/landing/landing";
+import CivicPulse from "../pages/public/CivicPulse";
 import Login from "../pages/auth/Login";
 import Signup from "../pages/auth/Signup";
 import ForgotPassword from "../pages/auth/ForgotPassword";
@@ -45,6 +46,12 @@ function AppRoutes() {
         <Route
           path="/landing"
           element={<Landing />}
+        />
+
+        {/* Public Civic Impact Dashboard / City Civic Pulse */}
+        <Route
+          path="/civic-pulse"
+          element={<CivicPulse />}
         />
 
         {/* Authentication */}
@@ -123,6 +130,11 @@ function AppRoutes() {
             <Route
             path="/citizen/preferences"
             element={<NotificationPreferences />}
+            />
+
+            <Route
+            path="/citizen/civic-pulse"
+            element={<CivicPulse />}
             />
           </Route>
         </Route>

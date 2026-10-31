@@ -122,3 +122,79 @@ export const draftComplaintWithAI = async (input, token = null) => {
   return draft;
 };
 
+
+
+/**
+ * Send a message to the controlled conversational PRAGATI AI assistant.
+ *
+ * @param {string} message - User natural-language message
+ * @param {object} [context] - Current conversational context (e.g. lastComplaintId)
+ * @param {string} [token] - Optional auth token, falls back to stored token
+ * @returns {Promise<{ success: boolean, intent: string, message: string, primaryAction: object, secondaryActions: Array, data: object, context: object }>}
+ */
+export const sendCivicAIMessage = async (message, context = {}, token = null) => {
+  const authToken = token || getStoredAccessToken();
+
+  if (!authToken) {
+    const error = new Error("Please log in to chat with PRAGATI AI.");
+    error.status = 401;
+    throw error;
+  }
+
+  const trimmedMessage = typeof message === "string" ? message.trim() : "";
+  if (!trimmedMessage) {
+    const error = new Error("Message cannot be empty.");
+    error.status = 400;
+    throw error;
+  }
+
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/ai/chat`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${authToken}`,
+      },
+      body: JSON.stringify({
+        message: trimmedMessage,
+        context,
+      }),
+    });
+  } catch (networkError) {
+    console.error("PRAGATI AI chat network error:", networkError);
+    const error = new Error(
+      "Unable to reach PRAGATI AI assistant right now. Please check your connection."
+    );
+    error.status = 0;
+    error.original = networkError;
+    throw error;
+  }
+
+  let responseData = {};
+  const responseText = await response.text();
+  if (responseText) {
+    try {
+      responseData = JSON.parse(responseText);
+    } catch {
+      responseData = { message: responseText };
+    }
+  }
+
+  if (!response.ok || !responseData.success) {
+    let friendlyMessage =
+      responseData.message ||
+      "PRAGATI AI is temporarily unable to process that request. Please try again.";
+
+    if (response.status === 401 || response.status === 403) {
+      friendlyMessage = "Your session has expired. Please log in again to use PRAGATI AI.";
+    }
+
+    const error = new Error(friendlyMessage);
+    error.status = response.status;
+    error.data = responseData;
+    throw error;
+  }
+
+  return responseData;
+};

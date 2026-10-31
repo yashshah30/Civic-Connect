@@ -207,7 +207,7 @@ export default function Landing() {
               </div>
               <span className="text-slate-500 text-xs">|</span>
               <span className="text-xs font-medium text-slate-300">
-                Next-Gen Civic Assistant
+                Your Smart Civic Assistant
               </span>
             </div>
 
@@ -277,8 +277,11 @@ export default function Landing() {
                       <h3 className="font-brand text-sm font-bold text-white tracking-wide">
                         PRAGATI AI
                       </h3>
-                      <p className="text-[11px] text-slate-400">
-                        Smart Civic Assistant
+                      <p className="text-[10px] font-medium text-cyan-200/90 leading-tight">
+                        Public Response & Grievance Assistance for Transparent Interaction
+                      </p>
+                      <p className="mt-0.5 text-[11px] text-slate-400">
+                        Your Smart Civic Assistant
                       </p>
                     </div>
                   </div>
@@ -382,8 +385,15 @@ export default function Landing() {
               <span className="font-brand tracking-wide text-blue-900">
                 PRAGATI AI
               </span>
-              . Your Smart Civic Assistant.
             </h2>
+
+            <p className="mt-2 text-sm font-semibold tracking-wide text-blue-800 sm:text-base">
+              Public Response & Grievance Assistance for Transparent Interaction
+            </p>
+
+            <p className="mt-1 text-xs font-bold uppercase tracking-widest text-slate-500 sm:text-sm">
+              Your Smart Civic Assistant
+            </p>
 
             <p className="mt-4 text-base leading-relaxed text-slate-600 sm:text-lg">
               Citizens often struggle to classify municipal categories or describe hazards in
