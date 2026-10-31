@@ -4,6 +4,10 @@ import AuthLayout from "../../components/auth/AuthLayout";
 import Input from "../../components/ui/input";
 import Button from "../../components/ui/button";
 
+const API_BASE_URL =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) ||
+  "https://civic-connect-backend-6i78.onrender.com";
+
 export default function Signup() {
   const navigate = useNavigate();
 
@@ -46,7 +50,7 @@ export default function Signup() {
     try {
       setLoading(true);
 
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/signup`,
+      const response = await fetch(`${API_BASE_URL}/api/auth/signup`,
         {
           method: "POST",
           headers: {

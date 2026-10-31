@@ -5,6 +5,10 @@ import AuthLayout from "../../components/auth/AuthLayout";
 import Input from "../../components/ui/input";
 import Button from "../../components/ui/button";
 
+const API_BASE_URL =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) ||
+  "https://civic-connect-backend-6i78.onrender.com";
+
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,7 +30,7 @@ export default function ForgotPassword() {
       setLoading(true);
 
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL}/api/auth/forgot-password`,
+        `${API_BASE_URL}/api/auth/forgot-password`,
         {
           method: "POST",
           headers: {

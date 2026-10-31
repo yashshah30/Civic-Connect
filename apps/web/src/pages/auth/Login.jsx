@@ -8,6 +8,10 @@ import AuthLayout from "../../components/auth/AuthLayout";
 import Input from "../../components/ui/input";
 import Button from "../../components/ui/button";
 
+const API_BASE_URL =
+  (typeof import.meta !== "undefined" && import.meta.env?.VITE_API_URL) ||
+  "https://civic-connect-backend-6i78.onrender.com";
+
 export default function Login() {
   const navigate = useNavigate();
 
@@ -44,7 +48,7 @@ localStorage.removeItem("access_token");
 localStorage.removeItem("user");
 
 const response = await fetch(
-  `${import.meta.env.VITE_API_URL}/api/auth/login`,
+  `${API_BASE_URL}/api/auth/login`,
   {
     method: "POST",
     headers: {
